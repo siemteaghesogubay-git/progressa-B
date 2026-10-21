@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using progressa.Data;
+using progressa.Middleware;
 using progressa.Models;
 using progressa.Services;
 using progressa.Services.IServices;
@@ -80,12 +81,14 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
-// =========================
-// SERVICES
-// =========================
-
-builder.Services.AddScoped<IAuthService, AuthService>();
-
+// CORS (för React-frontend)
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Frontend", policy =>
+        policy.WithOrigins("http://localhost:5173")
+              .AllowAnyHeader()
+              .AllowAnyMethod());
+});
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
@@ -123,6 +126,9 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseMiddleware<RequestLoggingMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -131,7 +137,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseAuthentication();
+app.UseCors("Frontend"); 
+
+app.UseAuthentication();  
 app.UseAuthorization();
 
 app.MapControllers();
