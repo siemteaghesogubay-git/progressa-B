@@ -179,6 +179,64 @@ namespace progressa.Migrations
                     b.ToTable("Challenges");
                 });
 
+            modelBuilder.Entity("Checklist", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("OwnerUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("TrainingSessionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("TrainingSessionId");
+
+                    b.ToTable("Checklists");
+                });
+
+            modelBuilder.Entity("ChecklistItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ChecklistId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDone")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChecklistId");
+
+                    b.ToTable("ChecklistItems");
+                });
+
             modelBuilder.Entity("Goal", b =>
                 {
                     b.Property<int>("Id")
@@ -345,6 +403,40 @@ namespace progressa.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("TrainingSession", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DurationMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("OwnerUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("PerformedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.ToTable("TrainingSessions");
+                });
+
             modelBuilder.Entity("progressa.Models.ApplicationRole", b =>
                 {
                     b.Property<string>("Id")
@@ -454,6 +546,35 @@ namespace progressa.Migrations
                     b.Navigation("UserOwner");
                 });
 
+            modelBuilder.Entity("Checklist", b =>
+                {
+                    b.HasOne("ApplicationUser", "OwnerUser")
+                        .WithMany("Checklists")
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TrainingSession", "TrainingSession")
+                        .WithMany("Checklists")
+                        .HasForeignKey("TrainingSessionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("OwnerUser");
+
+                    b.Navigation("TrainingSession");
+                });
+
+            modelBuilder.Entity("ChecklistItem", b =>
+                {
+                    b.HasOne("Checklist", "Checklist")
+                        .WithMany("Items")
+                        .HasForeignKey("ChecklistId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Checklist");
+                });
+
             modelBuilder.Entity("Goal", b =>
                 {
                     b.HasOne("ApplicationUser", "OwnerUser")
@@ -527,6 +648,17 @@ namespace progressa.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("TrainingSession", b =>
+                {
+                    b.HasOne("ApplicationUser", "OwnerUser")
+                        .WithMany("TrainingSessions")
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("OwnerUser");
+                });
+
             modelBuilder.Entity("progressa.Models.GroupMember", b =>
                 {
                     b.HasOne("GroupActivity", "GroupActivity")
@@ -568,6 +700,8 @@ namespace progressa.Migrations
 
                     b.Navigation("Challenges");
 
+                    b.Navigation("Checklists");
+
                     b.Navigation("Goals");
 
                     b.Navigation("Memberships");
@@ -575,11 +709,18 @@ namespace progressa.Migrations
                     b.Navigation("OwnedChallenges");
 
                     b.Navigation("OwnedGroups");
+
+                    b.Navigation("TrainingSessions");
                 });
 
             modelBuilder.Entity("Category", b =>
                 {
                     b.Navigation("Challenges");
+                });
+
+            modelBuilder.Entity("Checklist", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("Goal", b =>
@@ -590,6 +731,11 @@ namespace progressa.Migrations
             modelBuilder.Entity("GroupActivity", b =>
                 {
                     b.Navigation("Members");
+                });
+
+            modelBuilder.Entity("TrainingSession", b =>
+                {
+                    b.Navigation("Checklists");
                 });
 #pragma warning restore 612, 618
         }

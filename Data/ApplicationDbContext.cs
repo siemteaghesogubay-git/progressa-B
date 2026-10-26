@@ -12,6 +12,9 @@ namespace progressa.Data
         public DbSet<Challenge> Challenges => Set<Challenge>();
         public DbSet<GroupActivity> GroupActivities => Set<GroupActivity>();
         public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
+        public DbSet<TrainingSession> TrainingSessions => Set<TrainingSession>();
+        public DbSet<Checklist> Checklists => Set<Checklist>();
+        public DbSet<ChecklistItem> ChecklistItems => Set<ChecklistItem>();
 
         protected override void OnModelCreating(ModelBuilder b)
         {
@@ -101,6 +104,45 @@ namespace progressa.Data
                 e.HasOne(m => m.GroupActivity)
                     .WithMany(g => g.Members)
                     .HasForeignKey(m => m.GroupActivityId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // TrainingSession
+            b.Entity<TrainingSession>(e =>
+            {
+                e.Property(s => s.Title).HasMaxLength(100).IsRequired();
+                e.Property(s => s.Notes).HasMaxLength(500);
+
+                e.HasOne(s => s.OwnerUser)
+                    .WithMany(u => u.TrainingSessions)
+                    .HasForeignKey(s => s.OwnerUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Checklist
+            b.Entity<Checklist>(e =>
+            {
+                e.Property(c => c.Title).HasMaxLength(100).IsRequired();
+
+                e.HasOne(c => c.OwnerUser)
+                    .WithMany(u => u.Checklists)
+                    .HasForeignKey(c => c.OwnerUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasOne(c => c.TrainingSession)
+                    .WithMany(s => s.Checklists)
+                    .HasForeignKey(c => c.TrainingSessionId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ChecklistItem
+            b.Entity<ChecklistItem>(e =>
+            {
+                e.Property(i => i.Text).HasMaxLength(200).IsRequired();
+
+                e.HasOne(i => i.Checklist)
+                    .WithMany(c => c.Items)
+                    .HasForeignKey(i => i.ChecklistId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
         }

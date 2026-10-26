@@ -22,4 +22,6 @@ public class ApplicationUser : IdentityUser
     public ICollection<GroupMember> Memberships { get; set; } = new List<GroupMember>();
     public ICollection<Challenge> OwnedChallenges { get; set; } = new List<Challenge>();
     public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();
+    public ICollection<TrainingSession> TrainingSessions { get; set; } = new List<TrainingSession>();
+    public ICollection<Checklist> Checklists { get; set; } = new List<Checklist>();
 }
