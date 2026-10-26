@@ -187,6 +187,9 @@ namespace progressa.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("CalendarId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime2");
 
@@ -209,6 +212,8 @@ namespace progressa.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CalendarId");
 
                     b.HasIndex("OwnerUserId");
 
@@ -345,6 +350,49 @@ namespace progressa.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("progressa.Models.ActivitySession", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ActualDurationInMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CalendarId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CategoryId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("OwnerUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("PlannedDurationInMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ScheduledAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CalendarId");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.ToTable("ActivitySessions");
+                });
+
             modelBuilder.Entity("progressa.Models.ApplicationRole", b =>
                 {
                     b.Property<string>("Id")
@@ -370,6 +418,25 @@ namespace progressa.Migrations
                         .HasFilter("[NormalizedName] IS NOT NULL");
 
                     b.ToTable("AspNetRoles", (string)null);
+                });
+
+            modelBuilder.Entity("progressa.Models.Calendar", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("OwnerUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.ToTable("Calendars");
                 });
 
             modelBuilder.Entity("progressa.Models.GroupMember", b =>
@@ -406,6 +473,117 @@ namespace progressa.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("GroupMembers");
+                });
+
+            modelBuilder.Entity("progressa.Models.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ActivitySessionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ScheduledFor")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("SentAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActivitySessionId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
+                });
+
+            modelBuilder.Entity("progressa.Models.NutritionLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ReachedCalories")
+                        .HasColumnType("int");
+
+                    b.Property<double>("ReachedCarbs")
+                        .HasColumnType("float");
+
+                    b.Property<double>("ReachedFat")
+                        .HasColumnType("float");
+
+                    b.Property<double>("ReachedProtein")
+                        .HasColumnType("float");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("NutritionLogs");
+                });
+
+            modelBuilder.Entity("progressa.Models.SleepLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("BedTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<double>("SleepHours")
+                        .HasColumnType("float");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("WakeTime")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("SleepLogs");
+                });
+
+            modelBuilder.Entity("progressa.Models.UserSettings", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("NotificationsOn")
+                        .HasColumnType("bit");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("UserSettings");
                 });
 
             modelBuilder.Entity("Category", b =>
@@ -456,11 +634,18 @@ namespace progressa.Migrations
 
             modelBuilder.Entity("Goal", b =>
                 {
+                    b.HasOne("progressa.Models.Calendar", "Calendar")
+                        .WithMany("Goals")
+                        .HasForeignKey("CalendarId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("ApplicationUser", "OwnerUser")
                         .WithMany("Goals")
                         .HasForeignKey("OwnerUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Calendar");
 
                     b.Navigation("OwnerUser");
                 });
@@ -527,6 +712,44 @@ namespace progressa.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("progressa.Models.ActivitySession", b =>
+                {
+                    b.HasOne("progressa.Models.Calendar", "Calendar")
+                        .WithMany("ActivitySessions")
+                        .HasForeignKey("CalendarId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Category", "Category")
+                        .WithMany("ActivitySessions")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ApplicationUser", "OwnerUser")
+                        .WithMany("ActivitySessions")
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Calendar");
+
+                    b.Navigation("Category");
+
+                    b.Navigation("OwnerUser");
+                });
+
+            modelBuilder.Entity("progressa.Models.Calendar", b =>
+                {
+                    b.HasOne("ApplicationUser", "OwnerUser")
+                        .WithMany("Calendars")
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("OwnerUser");
+                });
+
             modelBuilder.Entity("progressa.Models.GroupMember", b =>
                 {
                     b.HasOne("GroupActivity", "GroupActivity")
@@ -562,8 +785,64 @@ namespace progressa.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("progressa.Models.Notification", b =>
+                {
+                    b.HasOne("progressa.Models.ActivitySession", "ActivitySession")
+                        .WithMany()
+                        .HasForeignKey("ActivitySessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ApplicationUser", "User")
+                        .WithMany("Notifications")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ActivitySession");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("progressa.Models.NutritionLog", b =>
+                {
+                    b.HasOne("ApplicationUser", "User")
+                        .WithMany("NutritionLogs")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("progressa.Models.SleepLog", b =>
+                {
+                    b.HasOne("ApplicationUser", "User")
+                        .WithMany("SleepLogs")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("progressa.Models.UserSettings", b =>
+                {
+                    b.HasOne("ApplicationUser", "User")
+                        .WithOne("UserSettings")
+                        .HasForeignKey("progressa.Models.UserSettings", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("ApplicationUser", b =>
                 {
+                    b.Navigation("ActivitySessions");
+
+                    b.Navigation("Calendars");
+
                     b.Navigation("Categories");
 
                     b.Navigation("Challenges");
@@ -572,13 +851,23 @@ namespace progressa.Migrations
 
                     b.Navigation("Memberships");
 
+                    b.Navigation("Notifications");
+
+                    b.Navigation("NutritionLogs");
+
                     b.Navigation("OwnedChallenges");
 
                     b.Navigation("OwnedGroups");
+
+                    b.Navigation("SleepLogs");
+
+                    b.Navigation("UserSettings");
                 });
 
             modelBuilder.Entity("Category", b =>
                 {
+                    b.Navigation("ActivitySessions");
+
                     b.Navigation("Challenges");
                 });
 
@@ -590,6 +879,13 @@ namespace progressa.Migrations
             modelBuilder.Entity("GroupActivity", b =>
                 {
                     b.Navigation("Members");
+                });
+
+            modelBuilder.Entity("progressa.Models.Calendar", b =>
+                {
+                    b.Navigation("ActivitySessions");
+
+                    b.Navigation("Goals");
                 });
 #pragma warning restore 612, 618
         }
