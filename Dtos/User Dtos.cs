@@ -42,6 +42,33 @@ namespace progressa.Dtos
             public DateTime CreatedAt { get; set; }
         }
 
+        public class LoginDto
+        {
+            [Required(ErrorMessage = "Email is required.")]
+            public string Email { get; set; } = string.Empty;
+
+            [Required(ErrorMessage = "Password is required.")]
+            public string Password { get; set; } = string.Empty;
+
+            public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+            {
+                if (!string.IsNullOrWhiteSpace(Email) &&
+                    !new EmailAddressAttribute().IsValid(Email))
+                {
+                    yield return new ValidationResult(
+                        "Invalid email address.",
+                         [nameof(Email)]);
+                }
+            }
+        }
+
+
+        public class LoginResponseDto
+        {
+            public string Token { get; set; } = string.Empty;
+            public string UserId { get; set; } = string.Empty;
+            public string Email { get; set; } = string.Empty;
+        }
 
     }
 }
