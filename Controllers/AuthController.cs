@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using progressa.Dtos;
 using progressa.Services.IServices;
 using static progressa.Dtos.User_Dtos;
@@ -50,6 +51,13 @@ namespace progressa.Controllers
                 });
             }
             return Ok(result);
+        }
+
+        [HttpPost("logout")]
+        [Authorize]
+        public IActionResult Logout()
+        {
+            return NoContent();
         }
     }
 }
