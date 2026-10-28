@@ -43,6 +43,35 @@ namespace progressa.Dtos
         }
 
 
+
+
+        public class ForgotPasswordDto
+        {
+            [Required(ErrorMessage = "E-postadress krävs.")]
+            [EmailAddress(ErrorMessage = "Ogiltig e-postadress.")]
+            public string Email { get; set; } = string.Empty;
+        }
+
+        public class ResetPasswordDto
+        {
+            [Required(ErrorMessage = "E-postadress krävs.")]
+            [EmailAddress(ErrorMessage = "Ogiltig e-postadress.")]
+            public string Email { get; set; } = string.Empty;
+
+            [Required(ErrorMessage = "Token krävs.")]
+            public string Token { get; set; } = string.Empty;
+
+            [Required(ErrorMessage = "Nytt lösenord krävs.")]
+            [MinLength(8, ErrorMessage = "Lösenordet måste vara minst 8 tecken.")]
+            [MaxLength(100)]
+            public string NewPassword { get; set; } = string.Empty;
+
+            [Required(ErrorMessage = "Bekräfta lösenordet.")]
+            [Compare(nameof(NewPassword), ErrorMessage = "Lösenorden matchar inte.")]
+            public string ConfirmPassword { get; set; } = string.Empty;
+        }
+
+
     }
 }
         
