@@ -144,9 +144,7 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// =========================
-// PIPELINE (ordningen spelar roll)
-// =========================
+
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseMiddleware<RequestLoggingMiddleware>();
 
