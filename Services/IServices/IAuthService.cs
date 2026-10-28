@@ -28,4 +28,5 @@ public record RegisterResult(
 public interface IAuthService
 {
     Task<RegisterResult> RegisterAsync(RegisterDto dto);
+    Task<LoginResponseDto?> LoginAsync(LoginDto dto);
 }
