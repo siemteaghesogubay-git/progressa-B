@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using progressa.Models;
 
 public class Goal
 {
@@ -14,6 +15,9 @@ public class Goal
 
     public string OwnerUserId { get; set; } = string.Empty;
     public ApplicationUser OwnerUser { get; set; } = null!;
+
+    public int? CalendarId { get; set; }
+    public Calendar? Calendar { get; set; }
 
     public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();
 }

@@ -35,5 +35,21 @@ namespace progressa.Controllers
                     return ValidationProblem(ModelState);
             }
         }
+
+        [HttpPost("login")]
+        [ProducesResponseType(typeof(LoginResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> Login(LoginDto dto)
+        {
+            var result = await authService.LoginAsync(dto);
+            if (result == null)
+            {
+                return Unauthorized(new
+                {
+                    Message = "Felaktig e-post eller lösenord."
+                });
+            }
+            return Ok(result);
+        }
     }
 }

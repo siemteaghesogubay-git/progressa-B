@@ -12,6 +12,12 @@ namespace progressa.Data
         public DbSet<Challenge> Challenges => Set<Challenge>();
         public DbSet<GroupActivity> GroupActivities => Set<GroupActivity>();
         public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
+        public DbSet<Calendar> Calendars => Set<Calendar>();
+        public DbSet<ActivitySession> ActivitySessions => Set<ActivitySession>();
+        public DbSet<Notification> Notifications => Set<Notification>();
+        public DbSet<SleepLog> SleepLogs => Set<SleepLog>();
+        public DbSet<NutritionLog> NutritionLogs => Set<NutritionLog>();
+        public DbSet<UserSettings> UserSettings => Set<UserSettings>();
 
         protected override void OnModelCreating(ModelBuilder b)
         {
@@ -41,6 +47,11 @@ namespace progressa.Data
                 e.HasOne(g => g.OwnerUser)
                     .WithMany(u => u.Goals)
                     .HasForeignKey(g => g.OwnerUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasOne(g => g.Calendar)
+                    .WithMany(c => c.Goals)
+                    .HasForeignKey(g => g.CalendarId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
@@ -101,6 +112,77 @@ namespace progressa.Data
                 e.HasOne(m => m.GroupActivity)
                     .WithMany(g => g.Members)
                     .HasForeignKey(m => m.GroupActivityId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Calendar
+            b.Entity<Calendar>(e =>
+            {
+                e.HasOne(c => c.OwnerUser)
+                    .WithMany(u => u.Calendars)
+                    .HasForeignKey(c => c.OwnerUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ActivitySession
+            b.Entity<ActivitySession>(e =>
+            {
+                e.HasOne(a => a.OwnerUser)
+                    .WithMany(u => u.ActivitySessions)
+                    .HasForeignKey(a => a.OwnerUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasOne(a => a.Calendar)
+                    .WithMany(c => c.ActivitySessions)
+                    .HasForeignKey(a => a.CalendarId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasOne(a => a.Category)
+                    .WithMany(c => c.ActivitySessions)
+                    .HasForeignKey(a => a.CategoryId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Notification
+            b.Entity<Notification>(e =>
+            {
+                e.HasOne(n => n.User)
+                    .WithMany(u => u.Notifications)
+                    .HasForeignKey(n => n.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasOne(n => n.ActivitySession)
+                    .WithMany()
+                    .HasForeignKey(n => n.ActivitySessionId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // SleepLog
+            b.Entity<SleepLog>(e =>
+            {
+                e.HasOne(s => s.User)
+                    .WithMany(u => u.SleepLogs)
+                    .HasForeignKey(s => s.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // NutritionLog
+            b.Entity<NutritionLog>(e =>
+            {
+                e.HasOne(n => n.User)
+                    .WithMany(u => u.NutritionLogs)
+                    .HasForeignKey(n => n.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // UserSettings
+            b.Entity<UserSettings>(e =>
+            {
+                e.HasKey(s => s.UserId);
+
+                e.HasOne(us => us.User)
+                    .WithOne(u => u.UserSettings)
+                    .HasForeignKey<UserSettings>(s => s.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
         }
