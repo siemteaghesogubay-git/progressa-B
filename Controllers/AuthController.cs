@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using progressa.Dtos;
+using Microsoft.AspNetCore.RateLimiting;
 using progressa.Services.IServices;
 using static progressa.Dtos.User_Dtos;
 
@@ -58,6 +58,49 @@ namespace progressa.Controllers
         public IActionResult Logout()
         {
             return NoContent();
+        }
+        
+        [HttpPost("forgot-password")]
+        [EnableRateLimiting("password-reset")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordDto dto)
+        {
+            await authService.ForgotPasswordAsync(dto.Email);
+
+            // Samma svar oavsett om kontot finns
+            return Ok(new
+            {
+                message = "Om e-postadressen finns hos oss har vi skickat instruktioner för att återställa lösenordet."
+            });
+        }
+
+        [HttpPost("reset-password")]
+        [EnableRateLimiting("password-reset")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public async Task<IActionResult> ResetPassword(ResetPasswordDto dto)
+        {
+            var result = await authService.ResetPasswordAsync(dto);
+
+            switch (result.Status)
+            {
+                case ResetPasswordStatus.Success:
+                    return Ok(new { message = "Lösenordet har uppdaterats." });
+
+                case ResetPasswordStatus.InvalidPassword:
+                    foreach (var error in result.Errors)
+                        ModelState.AddModelError(nameof(dto.NewPassword), error);
+                    return ValidationProblem(ModelState);
+
+                default:
+                    return BadRequest(new ProblemDetails
+                    {
+                        Status = StatusCodes.Status400BadRequest,
+                        Title = result.Errors.First()
+                    });
+            }
         }
     }
 }
