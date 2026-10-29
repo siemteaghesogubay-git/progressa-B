@@ -21,6 +21,8 @@ namespace progressa.Services
             {
                 return DeleteUserResult.InvalidPassword();
             }
+            
+            //TODO: Lägga till radering
 
             return DeleteUserResult.Ok();
         }
