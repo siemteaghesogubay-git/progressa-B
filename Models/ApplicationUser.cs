@@ -18,8 +18,6 @@ public class ApplicationUser : IdentityUser
 
     public ICollection<Goal> Goals { get; set; } = new List<Goal>();
     public ICollection<Category> Categories { get; set; } = new List<Category>();
-    public ICollection<GroupActivity> OwnedGroups { get; set; } = new List<GroupActivity>();
-    public ICollection<GroupMember> Memberships { get; set; } = new List<GroupMember>();
     public ICollection<Challenge> OwnedChallenges { get; set; } = new List<Challenge>();
     public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();
     public ICollection<Calendar> Calendars { get; set; } = new List<Calendar>();

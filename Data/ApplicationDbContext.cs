@@ -10,8 +10,6 @@ namespace progressa.Data
         public DbSet<Category> Categories => Set<Category>();
         public DbSet<Goal> Goals => Set<Goal>();
         public DbSet<Challenge> Challenges => Set<Challenge>();
-        public DbSet<GroupActivity> GroupActivities => Set<GroupActivity>();
-        public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
         public DbSet<Calendar> Calendars => Set<Calendar>();
         public DbSet<ActivitySession> ActivitySessions => Set<ActivitySession>();
         public DbSet<Notification> Notifications => Set<Notification>();
@@ -79,40 +77,6 @@ namespace progressa.Data
                     .WithMany(cat => cat.Challenges)
                     .HasForeignKey(c => c.CategoryId)
                     .OnDelete(DeleteBehavior.Restrict);
-            });
-
-            // GroupActivity
-            b.Entity<GroupActivity>(e =>
-            {
-                e.Property(g => g.Name).HasMaxLength(100).IsRequired();
-                e.HasOne(g => g.OwnerUser)
-                    .WithMany(u => u.OwnedGroups)
-                    .HasForeignKey(g => g.OwnerUserId)
-                    .OnDelete(DeleteBehavior.Restrict);
-            });
-
-            // GroupMember
-            b.Entity<GroupMember>(e =>
-            {
-                e.HasOne(m => m.OwnerUser)
-                    .WithMany()
-                    .HasForeignKey(m => m.OwnerUserId)
-                    .OnDelete(DeleteBehavior.Restrict);
-
-                e.HasOne(m => m.User)
-                    .WithMany(u => u.Memberships)
-                    .HasForeignKey(m => m.UserId)
-                    .OnDelete(DeleteBehavior.Restrict);
-
-                e.HasOne(m => m.Role)
-                    .WithMany()
-                    .HasForeignKey(m => m.RoleId)
-                    .OnDelete(DeleteBehavior.Restrict);
-
-                e.HasOne(m => m.GroupActivity)
-                    .WithMany(g => g.Members)
-                    .HasForeignKey(m => m.GroupActivityId)
-                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // Calendar
