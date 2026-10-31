@@ -337,8 +337,18 @@ namespace progressa.Migrations
                     b.Property<int>("CalendarId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("CaloriesBurned")
+                        .HasColumnType("int");
+
                     b.Property<int>("CategoryId")
                         .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("OwnerUserId")
                         .IsRequired()
