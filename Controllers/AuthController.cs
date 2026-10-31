@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using progressa.Services.IServices;
 using static progressa.Dtos.User_Dtos;
@@ -52,6 +53,13 @@ namespace progressa.Controllers
             return Ok(result);
         }
 
+        [HttpPost("logout")]
+        [Authorize]
+        public IActionResult Logout()
+        {
+            return NoContent();
+        }
+        
         [HttpPost("forgot-password")]
         [EnableRateLimiting("password-reset")]
         [ProducesResponseType(StatusCodes.Status200OK)]

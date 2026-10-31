@@ -18,6 +18,7 @@ var builder = WebApplication.CreateBuilder(args);
 // =========================
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IActivitySessionService, ActivitySessionService>();
+builder.Services.AddScoped<IGoalService, GoalService>();
 
 // E-post (Azure Communication Services)
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));

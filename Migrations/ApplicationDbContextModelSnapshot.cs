@@ -114,9 +114,6 @@ namespace progressa.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("IsPrivate")
-                        .HasColumnType("bit");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -218,30 +215,6 @@ namespace progressa.Migrations
                     b.HasIndex("OwnerUserId");
 
                     b.ToTable("Goals");
-                });
-
-            modelBuilder.Entity("GroupActivity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("OwnerUserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OwnerUserId");
-
-                    b.ToTable("GroupActivities");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -449,42 +422,6 @@ namespace progressa.Migrations
                     b.ToTable("Calendars");
                 });
 
-            modelBuilder.Entity("progressa.Models.GroupMember", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("GroupActivityId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("OwnerUserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("RoleId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("GroupActivityId");
-
-                    b.HasIndex("OwnerUserId");
-
-                    b.HasIndex("RoleId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("GroupMembers");
-                });
-
             modelBuilder.Entity("progressa.Models.Notification", b =>
                 {
                     b.Property<int>("Id")
@@ -660,17 +597,6 @@ namespace progressa.Migrations
                     b.Navigation("OwnerUser");
                 });
 
-            modelBuilder.Entity("GroupActivity", b =>
-                {
-                    b.HasOne("ApplicationUser", "OwnerUser")
-                        .WithMany("OwnedGroups")
-                        .HasForeignKey("OwnerUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("OwnerUser");
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("progressa.Models.ApplicationRole", null)
@@ -760,41 +686,6 @@ namespace progressa.Migrations
                     b.Navigation("OwnerUser");
                 });
 
-            modelBuilder.Entity("progressa.Models.GroupMember", b =>
-                {
-                    b.HasOne("GroupActivity", "GroupActivity")
-                        .WithMany("Members")
-                        .HasForeignKey("GroupActivityId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ApplicationUser", "OwnerUser")
-                        .WithMany()
-                        .HasForeignKey("OwnerUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("progressa.Models.ApplicationRole", "Role")
-                        .WithMany()
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ApplicationUser", "User")
-                        .WithMany("Memberships")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("GroupActivity");
-
-                    b.Navigation("OwnerUser");
-
-                    b.Navigation("Role");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("progressa.Models.Notification", b =>
                 {
                     b.HasOne("progressa.Models.ActivitySession", "ActivitySession")
@@ -859,15 +750,11 @@ namespace progressa.Migrations
 
                     b.Navigation("Goals");
 
-                    b.Navigation("Memberships");
-
                     b.Navigation("Notifications");
 
                     b.Navigation("NutritionLogs");
 
                     b.Navigation("OwnedChallenges");
-
-                    b.Navigation("OwnedGroups");
 
                     b.Navigation("SleepLogs");
 
@@ -884,11 +771,6 @@ namespace progressa.Migrations
             modelBuilder.Entity("Goal", b =>
                 {
                     b.Navigation("Challenges");
-                });
-
-            modelBuilder.Entity("GroupActivity", b =>
-                {
-                    b.Navigation("Members");
                 });
 
             modelBuilder.Entity("progressa.Models.Calendar", b =>

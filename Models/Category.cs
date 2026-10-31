@@ -8,8 +8,6 @@ public class Category
     [Required, MaxLength(50)]
     public string Name { get; set; } = string.Empty;
 
-    public bool IsPrivate { get; set; }
-
     public string OwnerUserId { get; set; } = string.Empty;
     public ApplicationUser OwnerUser { get; set; } = null!;
 
