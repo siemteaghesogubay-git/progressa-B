@@ -11,7 +11,7 @@ public class ActivitySessionService(ApplicationDbContext db) : IActivitySessionS
     public async Task<IReadOnlyList<CategoryOptionDto>> GetCategoriesAsync(string userId) =>
         await db.Categories
             .AsNoTracking()
-            .Where(c => c.OwnerUserId == userId || !c.IsPrivate)
+            .Where(c => c.OwnerUserId == userId)
             .OrderBy(c => c.Name)
             .Select(c => new CategoryOptionDto { Id = c.Id, Name = c.Name })
             .ToListAsync();
@@ -22,12 +22,12 @@ public class ActivitySessionService(ApplicationDbContext db) : IActivitySessionS
         var category = await db.Categories
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == dto.CategoryId
-                                      && (c.OwnerUserId == userId || !c.IsPrivate));
+                                      && (c.OwnerUserId == userId));
         if (category is null)
             return CreateSessionResult.CategoryNotFound();
 
-        // OBS: kontrollerar bara att kalendern finns, se anmärkningen nedan
-        if (!await db.Calendars.AnyAsync(c => c.Id == dto.CalendarId))
+        // Kontrollerar att kalendern finns och tillhör användaren
+        if (!await db.Calendars.AnyAsync(c => c.Id == dto.CalendarId && c.OwnerUserId == userId))
             return CreateSessionResult.CalendarNotFound();
 
         var session = new ActivitySession
