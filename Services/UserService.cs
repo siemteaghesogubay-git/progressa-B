@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using progressa.Data;
 using progressa.Services.IServices;
 
@@ -21,6 +22,8 @@ namespace progressa.Services
             {
                 return DeleteUserResult.InvalidPassword();
             }
+            
+            await dbContext.Goals.Where(g => g.OwnerUserId == userId).ExecuteDeleteAsync();
 
             var result = await userManager.DeleteAsync(user);
 
