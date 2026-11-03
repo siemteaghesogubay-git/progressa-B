@@ -2,6 +2,12 @@
 
 namespace progressa.Models
 {
+    public static class SessionStatus
+    {
+        public const string Planned = "Planned";
+        public const string Completed = "Completed";
+    }
+
     public class ActivitySession
     {
         public int Id { get; set; }
@@ -24,6 +30,14 @@ namespace progressa.Models
         public int ActualDurationInMinutes { get; set; }
 
         [Required, MaxLength(30)]
-        public string Status { get; set; } = "Planned";
+        public string Status { get; set; } = SessionStatus.Planned;
+
+        // Frivilliga uppgifter
+        public int? CaloriesBurned { get; set; }
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }
