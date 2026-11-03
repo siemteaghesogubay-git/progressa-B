@@ -31,12 +31,6 @@ builder.Services.AddScoped<IActivitySessionService, ActivitySessionService>();
 builder.Services.AddScoped<IGoalService, GoalService>();
 builder.Services.AddScoped<ICalendarService, CalendarService>();
 
-// =========================
-// E-POST
-// =========================
-builder.Services.Configure<EmailSettings>(
-    builder.Configuration.GetSection("Email"));
-
 builder.Services.AddScoped<IEmailService, AzureEmailService>();
 
 // =========================
