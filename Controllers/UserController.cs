@@ -39,6 +39,8 @@ namespace progressa.Controllers
                         Title = result.Errors.First()
                     });
 
+                // 400, inte 401: användaren är inloggad, det är bekräftelsen som är fel.
+                // 401 får klienten att logga ut användaren.
                 case DeleteUserStatus.InvalidPassword:
                     foreach (var error in result.Errors)
                     {
