@@ -21,8 +21,14 @@ namespace progressa.Services
             {
                 return DeleteUserResult.InvalidPassword();
             }
-            
-            //TODO: Lägga till radering
+
+            var result = await userManager.DeleteAsync(user);
+
+            if (!result.Succeeded)
+            {
+                return DeleteUserResult.Failed(
+                    result.Errors.Select(e => e.Description));
+            }
 
             return DeleteUserResult.Ok();
         }

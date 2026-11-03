@@ -13,6 +13,11 @@ namespace progressa.Controllers
     public class UserController(IUserService userService) : ControllerBase
     {
         [HttpDelete("me")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> DeleteUser([FromBody] DeleteAccountDto dto)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
