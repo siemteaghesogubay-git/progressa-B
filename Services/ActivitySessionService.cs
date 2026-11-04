@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using progressa.Data;
+using progressa.Dtos;
 using progressa.Models;
 using progressa.Services.IServices;
 using static progressa.Dtos.ActivitySession_Dtos;
@@ -8,26 +9,26 @@ namespace progressa.Services;
 
 public class ActivitySessionService(ApplicationDbContext db) : IActivitySessionService
 {
-    public async Task<IReadOnlyList<CategoryOptionDto>> GetCategoriesAsync(string userId) =>
+    public async Task<IReadOnlyList<CategoryOptionDto>> GetCategoriesAsync(string userId, CancellationToken cancellationToken = default) =>
         await db.Categories
             .AsNoTracking()
             .Where(c => c.OwnerUserId == userId)
             .OrderBy(c => c.Name)
             .Select(c => new CategoryOptionDto { Id = c.Id, Name = c.Name })
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
-    public async Task<CreateSessionResult> CreateAsync(string userId, CreateActivitySessionDto dto)
+    public async Task<CreateSessionResult> CreateAsync(string userId, CreateActivitySessionDto dto, CancellationToken cancellationToken = default)
     {
         // Aktiviteten måste finnas och vara tillgänglig för användaren
         var category = await db.Categories
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == dto.CategoryId
-                                      && (c.OwnerUserId == userId));
+                                      && (c.OwnerUserId == userId), cancellationToken);
         if (category is null)
             return CreateSessionResult.CategoryNotFound();
 
         // Kontrollerar att kalendern finns och tillhör användaren
-        if (!await db.Calendars.AnyAsync(c => c.Id == dto.CalendarId && c.OwnerUserId == userId))
+        if (!await db.Calendars.AnyAsync(c => c.Id == dto.CalendarId && c.OwnerUserId == userId, cancellationToken))
             return CreateSessionResult.CalendarNotFound();
 
         var session = new ActivitySession
@@ -45,7 +46,7 @@ public class ActivitySessionService(ApplicationDbContext db) : IActivitySessionS
         };
 
         db.ActivitySessions.Add(session);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(cancellationToken);
 
         return CreateSessionResult.Ok(new ActivitySessionDto
         {
@@ -61,5 +62,84 @@ public class ActivitySessionService(ApplicationDbContext db) : IActivitySessionS
             Notes = session.Notes,
             CreatedAt = session.CreatedAt
         });
+    }
+
+    // Skapa ett planerat aktivitetspass
+    public async Task<CreateSessionResult> CreatePlannedSessionAsync(
+        string userId,
+        CreatePlannedSessionDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        var category = await db.Categories
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c =>
+               c.Id == dto.CategoryId
+                && (c.OwnerUserId == userId), cancellationToken);
+        if (category is null)
+            return CreateSessionResult.CategoryNotFound();
+
+        if (!await db.Calendars.AnyAsync(c =>
+            c.Id == dto.CalendarId && c.OwnerUserId == userId,
+            cancellationToken))
+        {
+            return CreateSessionResult.CalendarNotFound();
+        }
+        var session = new ActivitySession
+        {
+            OwnerUserId = userId,
+            CalendarId = dto.CalendarId,
+            CategoryId = category.Id,
+            ScheduledAt = dto.ScheduledAt!.Value.UtcDateTime,
+            PlannedDurationInMinutes = dto.PlannedDurationInMinutes,
+            ActualDurationInMinutes = 0,
+            Status = SessionStatus.Planned,
+            Notes = string.IsNullOrWhiteSpace(dto.Notes) ? null : dto.Notes.Trim()
+        };
+
+        db.ActivitySessions.Add(session);
+        await db.SaveChangesAsync(cancellationToken);
+
+        return CreateSessionResult.Ok(new ActivitySessionDto
+        {
+            Id = session.Id,
+            CalendarId = session.CalendarId,
+            CategoryId = category.Id,
+            CategoryName = category.Name,
+            ScheduledAt = session.ScheduledAt,
+            PlannedDurationInMinutes = session.PlannedDurationInMinutes,
+            ActualDurationInMinutes = session.ActualDurationInMinutes,
+            Status = session.Status,
+            CaloriesBurned = session.CaloriesBurned,
+            Notes = session.Notes,
+            CreatedAt = session.CreatedAt
+        });
+    }
+
+    // Markera ett planerat aktivitetspass som genomfört
+    public async Task<bool> CompletePlannedSessionAsync(
+        int sessionId,
+        string userId,
+        CompletePlannedSessionDto dto,
+        CancellationToken ct = default)
+    {
+        var session = await db.ActivitySessions
+            .FirstOrDefaultAsync(s =>
+            s.Id == sessionId && s.OwnerUserId == userId, ct);
+
+        if (session is null || session.Status != SessionStatus.Planned)
+            return false;
+
+        if (session.ScheduledAt > DateTime.UtcNow)
+            return false;
+
+        session.ActualDurationInMinutes = dto.ActualDurationInMinutes;
+        session.CaloriesBurned = dto.CaloriesBurned;
+        session.Notes = string.IsNullOrWhiteSpace(dto.Notes) ? null : dto.Notes.Trim();
+        session.Status = SessionStatus.Completed;
+
+        await db.SaveChangesAsync(ct);
+
+        return true;
+
     }
 }

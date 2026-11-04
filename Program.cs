@@ -5,6 +5,8 @@ using Microsoft.IdentityModel.Tokens;
 using progressa.Data;
 using progressa.Middleware;
 using progressa.Models;
+using progressa.Repositories;
+using progressa.Repositories.interfaces;
 using progressa.Services;
 using progressa.Services.IServices;
 using Scalar.AspNetCore;
@@ -12,6 +14,14 @@ using System.Text;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// =========================
+// REPOSITORIES
+// =========================
+builder.Services.AddScoped<IGoalRepository, GoalRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<ICalendarRepository, CalendarRepository>();
+builder.Services.AddScoped<IActivitySessionRepository, ActivitySessionRepository>();
 
 // =========================
 // SERVICES
@@ -52,9 +62,9 @@ builder.Services
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
-// Återställningstoken gäller i 1 timme
-builder.Services.Configure<DataProtectionTokenProviderOptions>(o =>
-    o.TokenLifespan = TimeSpan.FromHours(1));
+// Återställningstoken gäller i en timme.
+builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
+    options.TokenLifespan = TimeSpan.FromHours(1));
 
 // =========================
 // JWT
@@ -62,13 +72,17 @@ builder.Services.Configure<DataProtectionTokenProviderOptions>(o =>
 var jwt = builder.Configuration.GetSection("Jwt");
 
 var key = jwt["Key"]
-    ?? throw new InvalidOperationException("Jwt:Key saknas i konfigurationen.");
+    ?? throw new InvalidOperationException(
+        "Jwt:Key saknas i konfigurationen.");
 
 builder.Services
     .AddAuthentication(options =>
     {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultAuthenticateScheme =
+            JwtBearerDefaults.AuthenticationScheme;
+
+        options.DefaultChallengeScheme =
+            JwtBearerDefaults.AuthenticationScheme;
     })
     .AddJwtBearer(options =>
     {
@@ -82,7 +96,8 @@ builder.Services
             ValidIssuer = jwt["Issuer"],
             ValidAudience = jwt["Audience"],
 
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(key)),
 
             ClockSkew = TimeSpan.Zero
         };
@@ -97,7 +112,7 @@ builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-    // 5 anrop per 15 minuter och IP-adress
+    // Fem anrop per 15 minuter och IP-adress.
     options.AddPolicy("password-reset", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
@@ -110,7 +125,7 @@ builder.Services.AddRateLimiter(options =>
 });
 
 // =========================
-// CORS (för React-frontend)
+// CORS
 // =========================
 builder.Services.AddCors(options =>
 {
@@ -120,6 +135,9 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod());
 });
 
+// =========================
+// CONTROLLERS OCH OPENAPI
+// =========================
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
@@ -130,13 +148,15 @@ var app = builder.Build();
 // =========================
 using (var scope = app.Services.CreateScope())
 {
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
+    var roleManager = scope.ServiceProvider
+        .GetRequiredService<RoleManager<ApplicationRole>>();
 
     foreach (var roleName in new[] { "User", "GroupAdmin", "SuperAdmin" })
     {
         if (!await roleManager.RoleExistsAsync(roleName))
         {
-            var result = await roleManager.CreateAsync(new ApplicationRole(roleName));
+            var result = await roleManager.CreateAsync(
+                new ApplicationRole(roleName));
 
             if (!result.Succeeded)
             {
@@ -148,7 +168,9 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-
+// =========================
+// MIDDLEWARE
+// =========================
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseMiddleware<RequestLoggingMiddleware>();
 

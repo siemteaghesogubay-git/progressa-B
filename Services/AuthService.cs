@@ -90,7 +90,7 @@ public class AuthService(
             issuer: jwt["Issuer"],
             audience: jwt["Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddHours(1),
+            expires: DateTime.UtcNow.AddDays(7),
             signingCredentials: credentials
         );
 

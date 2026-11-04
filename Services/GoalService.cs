@@ -1,167 +1,150 @@
-﻿using Microsoft.EntityFrameworkCore;
-using progressa.Data;
+﻿using progressa.Dtos;
+using progressa.Repositories.interfaces;
 using progressa.Services.IServices;
-using progressa.Dtos;
 
-namespace progressa.Services
+namespace progressa.Services;
+
+public class GoalService(
+    IGoalRepository goals,
+    ICalendarRepository calendars) : IGoalService
 {
-    public class GoalService : IGoalService
+    public async Task<List<GoalDto>> GetAllAsync(
+        string userId,
+        CancellationToken ct = default)
     {
-        private readonly ApplicationDbContext _context;
+        var userGoals = await goals.GetAllAsync(userId, ct);
 
-        public GoalService(ApplicationDbContext context)
+        return userGoals
+            .Select(MapToDto)
+            .ToList();
+    }
+
+    public async Task<GoalDto?> GetByIdAsync(
+        int id,
+        string userId,
+        CancellationToken ct = default)
+    {
+        var goal = await goals.GetByIdAsync(id, userId, ct);
+
+        return goal is null ? null : MapToDto(goal);
+    }
+
+    public async Task<GoalDto> CreateAsync(
+        CreateGoalDto dto,
+        string userId,
+        CancellationToken ct = default)
+    {
+        await ValidateAsync(
+            dto.StartDate,
+            dto.EndDate,
+            dto.CalendarId,
+            userId,
+            ct);
+
+        var goal = new Goal
         {
-            _context = context;
+            Title = dto.Title,
+            Target = dto.Target,
+            StartDate = dto.StartDate,
+            EndDate = dto.EndDate,
+            IsCompleted = false,
+            OwnerUserId = userId,
+            CalendarId = dto.CalendarId
+        };
+
+        await goals.AddAsync(goal, ct);
+
+        return MapToDto(goal);
+    }
+
+    public async Task<GoalDto?> UpdateAsync(
+        int id,
+        UpdateGoalDto dto,
+        string userId,
+        CancellationToken ct = default)
+    {
+        var goal = await goals.GetForUpdateAsync(id, userId, ct);
+
+        if (goal is null)
+            return null;
+
+        await ValidateAsync(
+            dto.StartDate,
+            dto.EndDate,
+            dto.CalendarId,
+            userId,
+            ct);
+
+        goal.Title = dto.Title;
+        goal.Target = dto.Target;
+        goal.StartDate = dto.StartDate;
+        goal.EndDate = dto.EndDate;
+        goal.IsCompleted = dto.IsCompleted;
+        goal.CalendarId = dto.CalendarId;
+
+        await goals.SaveChangesAsync(ct);
+
+        return MapToDto(goal);
+    }
+
+    public async Task<bool> DeleteAsync(
+        int id,
+        string userId,
+        CancellationToken ct = default)
+    {
+        var goal = await goals.GetForUpdateAsync(id, userId, ct);
+
+        if (goal is null)
+            return false;
+
+        if (await goals.HasChallengesAsync(id, userId, ct))
+        {
+            throw new InvalidOperationException(
+                "Målet används av en challenge och kan inte tas bort.");
         }
 
+        await goals.DeleteAsync(goal, ct);
 
-        // Hämta alla mål för en användare
-        public async Task<List<GoalDto>> GetAllAsync(string userId)
+        return true;
+    }
+
+    private async Task ValidateAsync(
+        DateTime start,
+        DateTime end,
+        int? calendarId,
+        string userId,
+        CancellationToken ct)
+    {
+        if (start == default || end == default || end < start)
         {
-            return await _context.Goals
-                .Where(g => g.OwnerUserId == userId)
-                .Select(g => new GoalDto
-                {
-                    Id = g.Id,
-                    Title = g.Title,
-                    Target = g.Target,
-                    StartDate = g.StartDate,
-                    EndDate = g.EndDate,
-                    IsCompleted = g.IsCompleted,
-                    CalendarId = g.CalendarId
-                })
-                .ToListAsync();
+            throw new ArgumentException("Ogiltiga datum.");
         }
 
-        // Hämta ett specifikt mål för en användare
-        public async Task<GoalDto?> GetByIdAsync(int id, string userId){
-            return await _context.Goals
-                .Where(g => g.Id == id && g.OwnerUserId == userId)
-                .Select(g => new GoalDto
-                {
-                    Id = g.Id,
-                    Title = g.Title,
-                    Target = g.Target,
-                    StartDate = g.StartDate,
-                    EndDate = g.EndDate,
-                    IsCompleted = g.IsCompleted,
-                    CalendarId = g.CalendarId
-                })
-                .FirstOrDefaultAsync();
-        }
-
-        // Skapa ett nytt mål för en användare
-        public async Task<GoalDto> CreateAsync(CreateGoalDto dto, string userId)
+        if (calendarId.HasValue)
         {
-            if (dto.StartDate == default || dto.EndDate == default ||
-                dto.EndDate < dto.StartDate)
+            var exists = await calendars.ExistsAsync(
+                calendarId.Value,
+                userId,
+                ct);
+
+            if (!exists)
             {
-                throw new ArgumentException("Ogiltiga datum.");
+                throw new ArgumentException("Kalendern finns inte.");
             }
-
-            if (dto.CalendarId.HasValue)
-            {
-                bool calendarExists = await _context.Calendars
-                    .AnyAsync(c => c.Id == dto.CalendarId.Value &&
-                                   c.OwnerUserId == userId);
-
-                if (!calendarExists)
-                {
-                    throw new ArgumentException("Kalendern finns inte.");
-                }
-            }
-
-            var goal = new Goal
-            {
-                Title = dto.Title,
-                Target = dto.Target,
-                StartDate = dto.StartDate,
-                EndDate = dto.EndDate,
-                IsCompleted = false,
-                OwnerUserId = userId,
-                CalendarId = dto.CalendarId
-            };
-
-            _context.Goals.Add(goal);
-            await _context.SaveChangesAsync();
-
-            return new GoalDto
-            {
-                Id = goal.Id,
-                Title = goal.Title,
-                Target = goal.Target,
-                StartDate = goal.StartDate,
-                EndDate = goal.EndDate,
-                IsCompleted = goal.IsCompleted,
-                CalendarId = goal.CalendarId
-            };
         }
+    }
 
-        // Uppdatera ett mål för en användare
-        public async Task<GoalDto?> UpdateAsync(int id, UpdateGoalDto dto, string userId)
+    private static GoalDto MapToDto(Goal goal)
+    {
+        return new GoalDto
         {
-            var goal = await _context.Goals
-                .FirstOrDefaultAsync(g => g.Id == id && g.OwnerUserId == userId);
-
-            if (goal == null)
-                return null;
-
-            if (dto.StartDate == default || dto.EndDate == default ||
-                dto.EndDate < dto.StartDate)
-            {
-                throw new ArgumentException("Ogiltiga datum.");
-            }
-
-            if (dto.CalendarId.HasValue)
-            {
-                bool calendarExists = await _context.Calendars
-                    .AnyAsync(c => c.Id == dto.CalendarId.Value &&
-                                   c.OwnerUserId == userId);
-
-                if (!calendarExists)
-                    throw new ArgumentException("Kalendern finns inte.");
-            }
-
-            goal.Title = dto.Title;
-            goal.Target = dto.Target;
-            goal.StartDate = dto.StartDate;
-            goal.EndDate = dto.EndDate;
-            goal.IsCompleted = dto.IsCompleted;
-            goal.CalendarId = dto.CalendarId;
-
-            await _context.SaveChangesAsync();
-
-            return new GoalDto
-            {
-                Id = goal.Id,
-                Title = goal.Title,
-                Target = goal.Target,
-                StartDate = goal.StartDate,
-                EndDate = goal.EndDate,
-                IsCompleted = goal.IsCompleted,
-                CalendarId = goal.CalendarId
-            };
-        }
-
-        // Ta bort ett mål för en användare
-        public async Task<bool> DeleteAsync(int id, string userId)
-        {
-            var goal = await _context.Goals
-                .FirstOrDefaultAsync(g => g.Id == id && g.OwnerUserId == userId);
-
-            if (goal == null)
-                return false;
-
-            bool hasChallenges = await _context.Challenges
-                .AnyAsync(c => c.GoalId == id);
-
-            if (hasChallenges)
-                throw new InvalidOperationException("Målet används av en challenge och kan inte tas bort.");
-
-            _context.Goals.Remove(goal);
-            await _context.SaveChangesAsync();
-
-            return true;
-        }
+            Id = goal.Id,
+            Title = goal.Title,
+            Target = goal.Target,
+            StartDate = goal.StartDate,
+            EndDate = goal.EndDate,
+            IsCompleted = goal.IsCompleted,
+            CalendarId = goal.CalendarId
+        };
     }
 }
