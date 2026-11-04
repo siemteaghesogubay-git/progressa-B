@@ -29,7 +29,10 @@ builder.Services.AddScoped<IActivitySessionRepository, ActivitySessionRepository
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IActivitySessionService, ActivitySessionService>();
 builder.Services.AddScoped<IGoalService, GoalService>();
-builder.Services.AddScoped<ICalendarService,CalendarService>();
+builder.Services.AddScoped<ICalendarService, CalendarService>();
+builder.Services.AddScoped<IUserService, UserService>();
+
+// E-post (Azure Communication Services)
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));
 builder.Services.AddScoped<IEmailService, AzureEmailService>();
 
