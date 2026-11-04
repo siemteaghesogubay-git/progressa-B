@@ -1,4 +1,5 @@
-﻿using static progressa.Dtos.ActivitySession_Dtos;
+﻿using progressa.Dtos;
+using static progressa.Dtos.ActivitySession_Dtos;
 
 namespace progressa.Services.IServices;
 
@@ -38,5 +39,16 @@ public interface IActivitySessionService
     Task<CreateSessionResult> CreateAsync(
         string userId,
         CreateActivitySessionDto dto,
+        CancellationToken ct = default);
+
+    Task<CreateSessionResult> CreatePlannedSessionAsync(
+        string userId,
+        CreatePlannedSessionDto dto,
+        CancellationToken ct = default);
+
+    Task<bool> CompletePlannedSessionAsync(
+        int sessionId,
+        string userId,
+        CompletePlannedSessionDto dto,
         CancellationToken ct = default);
 }
