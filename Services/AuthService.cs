@@ -34,6 +34,12 @@ public class AuthService(
             Age = dto.Age
         };
 
+        // Skapa en standardkalender och 3 kategorier för användaren
+        user.Calendars.Add(new Calendar());
+        user.Categories.Add(new Category { Name = "Löpning" });
+        user.Categories.Add(new Category { Name = "Styrketräning" });
+        user.Categories.Add(new Category { Name = "Promenad" });
+
         var create = await userManager.CreateAsync(user, dto.Password);
 
         if (!create.Succeeded)
