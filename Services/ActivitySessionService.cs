@@ -142,4 +142,19 @@ public class ActivitySessionService(ApplicationDbContext db) : IActivitySessionS
         return true;
 
     }
+
+    // Ta bort ett planerat aktivitetspass
+    public async Task<bool> DeletePlannedSessionAsync(
+        int sessionId,
+        string userId,
+        CancellationToken ct = default)
+    {
+        var deleteCount = await db.ActivitySessions
+            .Where(s => s.Id == sessionId
+                && s.OwnerUserId == userId
+                && s.Status == SessionStatus.Planned)
+            .ExecuteDeleteAsync(ct);
+
+        return deleteCount > 0;
+    }
 }

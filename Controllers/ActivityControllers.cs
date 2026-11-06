@@ -103,4 +103,26 @@ public class ActivitySessionsController(IActivitySessionService service) : Contr
 
         return NoContent();
     }
+
+    // Ta bort ett planerat aktivitetspass
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeletePlanned(
+        int id,
+        CancellationToken ct)
+    {
+        var userId = CurrentUserId;
+
+        if (userId is null)
+            return Unauthorized();
+
+        var deleted = await service.DeletePlannedSessionAsync(id, userId, ct);
+
+        if (!deleted)
+            return NotFound();
+
+        return NoContent();
+    }
 }
