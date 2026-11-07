@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using progressa.Models;
 
 public class Category
 {
@@ -7,10 +8,9 @@ public class Category
     [Required, MaxLength(50)]
     public string Name { get; set; } = string.Empty;
 
-    public bool IsPrivate { get; set; }
-
     public string OwnerUserId { get; set; } = string.Empty;
     public ApplicationUser OwnerUser { get; set; } = null!;
 
     public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();
+    public ICollection<ActivitySession> ActivitySessions { get; set; } = new List<ActivitySession>();
 }
