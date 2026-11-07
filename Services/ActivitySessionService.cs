@@ -157,4 +157,38 @@ public class ActivitySessionService(ApplicationDbContext db) : IActivitySessionS
 
         return deleteCount > 0;
     }
+
+    // Redigera ett planerat träningspass
+    public async Task<UpdatePlannedSessionStatus> UpdatePlannedSessionAsync(
+        int sessionId,
+        string userId,
+        UpdatePlannedSessionDto dto,
+        CancellationToken ct = default)
+    {
+        var categoryExist = await db.Categories.AnyAsync(
+            c => c.Id == dto.CategoryId && c.OwnerUserId == userId, ct);
+
+        if (!categoryExist)
+        {
+            return UpdatePlannedSessionStatus.CategoryNotFound;
+        }
+
+        var scheduledAt = dto.ScheduledAt!.Value.UtcDateTime;
+        var notes = string.IsNullOrWhiteSpace(dto.Notes) ? null : dto.Notes.Trim();
+
+        var updateCount = await db.ActivitySessions
+            .Where(s => s.Id == sessionId
+                && s.OwnerUserId == userId
+                && s.Status == SessionStatus.Planned)
+            .ExecuteUpdateAsync(setters => setters
+               .SetProperty(s => s.CategoryId, dto.CategoryId)
+                .SetProperty(s => s.ScheduledAt, scheduledAt)
+                .SetProperty(s => s.PlannedDurationInMinutes, dto.PlannedDurationInMinutes)
+                .SetProperty(s => s.Notes, notes), ct);
+
+        if (updateCount == 0)
+            return UpdatePlannedSessionStatus.SessionNotFound;
+
+        return UpdatePlannedSessionStatus.Success;
+    }
 }
