@@ -14,6 +14,16 @@ namespace progressa.Services
             _context = context;
         }
 
+        // Hämta användarens kalender-ID
+        public async Task<int?> GetDefaultCalendarIdAsync(string userId)
+        {
+            return await _context.Calendars
+                .Where(c => c.OwnerUserId == userId)
+                .OrderBy(c => c.Id)
+                .Select(c => (int?)c.Id)
+                .FirstOrDefaultAsync();
+        }
+
         // Hämta användarens aktivitetspass för en specifik dag
         public async Task<List<CalendarSessionDto>> GetByDayAsync(DateTime date, string userId)
         {

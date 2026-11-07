@@ -17,6 +17,23 @@ namespace progressa.Controllers
             _calendarService = calendarService;
         }
 
+        // Visar användarens kalender-ID
+        [HttpGet("default")]
+        public async Task<IActionResult> GetDefaultCalendarAsync()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (userId == null)
+                return Unauthorized();
+
+            var calendarId = await _calendarService.GetDefaultCalendarIdAsync(userId);
+
+            if (calendarId == null)
+                return NotFound();
+
+            return Ok(new { calendarId });
+        }
+
         // Visar användarens aktiviteter för en specifik dag
         [HttpGet("day")]
         public async Task<IActionResult> GetByDayAsync(DateTime date)
