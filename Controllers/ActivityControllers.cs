@@ -125,4 +125,32 @@ public class ActivitySessionsController(IActivitySessionService service) : Contr
 
         return NoContent();
     }
+
+    // Redigera ett planerat träningspass
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdatePlanned(
+        int  id,
+        UpdatePlannedSessionDto dto,
+        CancellationToken ct)
+    {
+        var userId = CurrentUserId;
+        if ( userId is null)
+            return Unauthorized();
+
+        var status = await service.UpdatePlannedSessionAsync(id, userId, dto, ct);
+        if (status == UpdatePlannedSessionStatus.CategoryNotFound)
+        {
+            ModelState.AddModelError(nameof(dto.CategoryId), "Kategorin finns inte.");
+            return ValidationProblem(ModelState);
+        }
+
+        if (status == UpdatePlannedSessionStatus.SessionNotFound)
+            return NotFound();
+
+        return NoContent();
+    }
 }
