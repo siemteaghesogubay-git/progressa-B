@@ -51,4 +51,9 @@ public interface IActivitySessionService
         string userId,
         CompletePlannedSessionDto dto,
         CancellationToken ct = default);
+
+    Task<bool> DeletePlannedSessionAsync(
+        int sessionId,
+        string userId,
+        CancellationToken ct = default);
 }
