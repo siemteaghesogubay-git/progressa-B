@@ -13,6 +13,7 @@ using Scalar.AspNetCore;
 using System.Text;
 using System.Threading.RateLimiting;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 // =========================
@@ -22,6 +23,8 @@ builder.Services.AddScoped<IGoalRepository, GoalRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ICalendarRepository, CalendarRepository>();
 builder.Services.AddScoped<IActivitySessionRepository, ActivitySessionRepository>();
+builder.Services.AddScoped< IRecurringWorkoutRepository, RecurringWorkoutRepository>();
+
 
 // =========================
 // SERVICES
@@ -35,6 +38,9 @@ builder.Services.AddScoped<IUserService, UserService>();
 // E-post (Azure Communication Services)
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));
 builder.Services.AddScoped<IEmailService, AzureEmailService>();
+builder.Services.AddScoped< IRecurringWorkoutService, RecurringWorkoutService>();
+
+
 
 // =========================
 // DATABAS
