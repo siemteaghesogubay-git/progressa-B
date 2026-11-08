@@ -22,6 +22,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<IGoalRepository, GoalRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ICalendarRepository, CalendarRepository>();
+
 builder.Services.AddScoped<
     IActivitySessionRepository,
     ActivitySessionRepository>();
@@ -34,6 +35,7 @@ builder.Services.AddScoped<
 // SERVICES
 // =========================
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IGoalService, GoalService>();
 builder.Services.AddScoped<ICalendarService, CalendarService>();
 
@@ -168,7 +170,6 @@ builder.Services
 
 builder.Services.AddOpenApi();
 
-// Alla tjänster ska vara registrerade före denna rad.
 var app = builder.Build();
 
 // =========================
@@ -220,8 +221,6 @@ app.UseAuthorization();
 
 app.UseRateLimiter();
 
-// Aktivera controller-endpoints.
 app.MapControllers();
 
-
-app.Run(); 
+app.Run();
