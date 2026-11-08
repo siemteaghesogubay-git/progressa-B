@@ -22,6 +22,28 @@ public class CalendarController : ControllerBase
         User.FindFirstValue(ClaimTypes.NameIdentifier)
         ?? User.FindFirstValue("sub");
 
+    // Hämta användarens standardkalender.
+    [HttpGet("default")]
+    public async Task<IActionResult> GetDefaultCalendarAsync()
+    {
+        var userId = CurrentUserId;
+
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized();
+        }
+
+        var calendarId = await _calendarService
+            .GetDefaultCalendarIdAsync(userId);
+
+        if (calendarId is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(new { calendarId });
+    }
+
     // Hämta aktiviteter för en svensk kalenderdag.
     [HttpGet("day")]
     public async Task<IActionResult> GetByDayAsync(
@@ -134,8 +156,7 @@ public class CalendarController : ControllerBase
             return false;
         }
 
-        // Ett lokalt kalenderdatum, inte en UTC-tidpunkt.
-        // CalendarService omvandlar periodens gränser till UTC.
+        // CalendarService omvandlar de lokala datumgränserna till UTC.
         calendarDate = parsedDate.ToDateTime(
             TimeOnly.MinValue,
             DateTimeKind.Unspecified);
