@@ -13,6 +13,8 @@ public class CalendarService(ApplicationDbContext context)
 
     public async Task<int?> GetDefaultCalendarIdAsync(string userId)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+
         return await context.Calendars
             .AsNoTracking()
             .Where(calendar => calendar.OwnerUserId == userId)
@@ -87,8 +89,8 @@ public class CalendarService(ApplicationDbContext context)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
 
-        // Omvandla båda gränserna separat.
-        // Ett lokalt dygn kan vara 23, 24 eller 25 timmar.
+        // Omvandla båda gränserna separat så att även
+        // dygn med 23 eller 25 timmar hanteras korrekt.
         var startUtc = TimeZoneInfo.ConvertTimeToUtc(
             localStart,
             CalendarTimeZone);
@@ -120,8 +122,7 @@ public class CalendarService(ApplicationDbContext context)
 
     private static DateTime AsLocalDate(DateTime date)
     {
-        // Datumet representerar en svensk kalenderdag,
-        // inte en tidpunkt i serverns lokala tidszon.
+        // Datumet representerar en svensk kalenderdag.
         return DateTime.SpecifyKind(
             date.Date,
             DateTimeKind.Unspecified);
@@ -129,8 +130,6 @@ public class CalendarService(ApplicationDbContext context)
 
     private static void ValidateDate(DateTime date)
     {
-        // Begränsa kalenderns datumområde och undvik att
-        // beräkningen av nästa dag/vecka/månad går utanför DateTime.
         if (date.Year < 1900 || date.Year > 9998)
         {
             throw new ArgumentException(
