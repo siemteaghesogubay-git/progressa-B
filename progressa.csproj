@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
@@ -39,6 +39,10 @@
 		<Content Remove="Progressa.Tests/**/*" />
 		<EmbeddedResource Remove="Progressa.Tests/**/*" />
 		<None Remove="Progressa.Tests/**/*" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Remove="Progressa.Tests\**\*.cs" />
 	</ItemGroup>
 
 </Project>

@@ -34,6 +34,12 @@ public class AuthService(
             Age = dto.Age
         };
 
+        // Skapa en standardkalender och 3 kategorier för användaren
+        user.Calendars.Add(new Calendar());
+        user.Categories.Add(new Category { Name = "Löpning" });
+        user.Categories.Add(new Category { Name = "Styrketräning" });
+        user.Categories.Add(new Category { Name = "Promenad" });
+
         var create = await userManager.CreateAsync(user, dto.Password);
 
         if (!create.Succeeded)
@@ -90,7 +96,7 @@ public class AuthService(
             issuer: jwt["Issuer"],
             audience: jwt["Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddHours(1),
+            expires: DateTime.UtcNow.AddDays(7),
             signingCredentials: credentials
         );
 
