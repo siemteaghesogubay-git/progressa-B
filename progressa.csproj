@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-	  <DefaultItemExcludes>$(DefaultItemExcludes);Progressa.Tests/**</DefaultItemExcludes>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>b73fee5a-1b62-4e10-ab9d-c6364ccfa3f6</UserSecretsId>
