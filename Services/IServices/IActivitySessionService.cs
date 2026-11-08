@@ -30,6 +30,13 @@ public record CreateSessionResult(
     }
 }
 
+public enum UpdatePlannedSessionStatus
+{
+    Success,
+    SessionNotFound,
+    CategoryNotFound
+}
+
 public interface IActivitySessionService
 {
     Task<IReadOnlyList<CategoryOptionDto>> GetCategoriesAsync(
@@ -55,5 +62,11 @@ public interface IActivitySessionService
     Task<bool> DeletePlannedSessionAsync(
         int sessionId,
         string userId,
+        CancellationToken ct = default);
+
+    Task<UpdatePlannedSessionStatus> UpdatePlannedSessionAsync(
+        int sessionId,
+        string userId,
+        UpdatePlannedSessionDto dto,
         CancellationToken ct = default);
 }
