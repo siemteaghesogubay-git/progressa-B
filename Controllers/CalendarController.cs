@@ -1,59 +1,145 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Globalization;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using progressa.Services.IServices;
-using System.Security.Claims;
 
-namespace progressa.Controllers
+namespace progressa.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class CalendarController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    [Authorize]
-    public class CalendarController : ControllerBase
+    private readonly ICalendarService _calendarService;
+
+    public CalendarController(ICalendarService calendarService)
     {
-        private readonly ICalendarService _calendarService;
+        _calendarService = calendarService;
+    }
 
-        public CalendarController(ICalendarService calendarService)
+    private string? CurrentUserId =>
+        User.FindFirstValue(ClaimTypes.NameIdentifier)
+        ?? User.FindFirstValue("sub");
+
+    // Hämta aktiviteter för en svensk kalenderdag.
+    [HttpGet("day")]
+    public async Task<IActionResult> GetByDayAsync(
+        [FromQuery] string? date)
+    {
+        var userId = CurrentUserId;
+
+        if (string.IsNullOrWhiteSpace(userId))
         {
-            _calendarService = calendarService;
+            return Unauthorized();
         }
 
-        // Visar användarens aktiviteter för en specifik dag
-        [HttpGet("day")]
-        public async Task<IActionResult> GetByDayAsync(DateTime date)
+        if (!TryParseCalendarDate(date, out var calendarDate))
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if(userId == null)
-                return Unauthorized();
-
-            var sessions = await _calendarService.GetByDayAsync(date, userId);
-            return Ok(sessions);
+            return ValidationProblem(ModelState);
         }
 
-        // Visar användarens aktiviteter för en specifik vecka
-        [HttpGet("week")]
-        public async Task<IActionResult> GetByWeekAsync(DateTime date)
+        var sessions = await _calendarService.GetByDayAsync(
+            calendarDate,
+            userId);
+
+        return Ok(sessions);
+    }
+
+    // Hämta aktiviteter för veckan som innehåller datumet.
+    // Veckan börjar på måndag.
+    [HttpGet("week")]
+    public async Task<IActionResult> GetByWeekAsync(
+        [FromQuery] string? date)
+    {
+        var userId = CurrentUserId;
+
+        if (string.IsNullOrWhiteSpace(userId))
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (userId == null)
-                return Unauthorized();
-
-            var sessions = await _calendarService.GetByWeekAsync(date, userId);
-            return Ok(sessions);
+            return Unauthorized();
         }
 
-        // Visar användarens aktiviteter för en specifik månad
-        [HttpGet("month")]
-        public async Task<IActionResult> GetByMonthAsync(DateTime date)
+        if (!TryParseCalendarDate(date, out var calendarDate))
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if(userId == null)
-                return Unauthorized();
-
-            var sessions = await _calendarService.GetByMonthAsync(date, userId);
-            return Ok(sessions);
+            return ValidationProblem(ModelState);
         }
+
+        var sessions = await _calendarService.GetByWeekAsync(
+            calendarDate,
+            userId);
+
+        return Ok(sessions);
+    }
+
+    // Hämta aktiviteter för månaden som innehåller datumet.
+    [HttpGet("month")]
+    public async Task<IActionResult> GetByMonthAsync(
+        [FromQuery] string? date)
+    {
+        var userId = CurrentUserId;
+
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized();
+        }
+
+        if (!TryParseCalendarDate(date, out var calendarDate))
+        {
+            return ValidationProblem(ModelState);
+        }
+
+        var sessions = await _calendarService.GetByMonthAsync(
+            calendarDate,
+            userId);
+
+        return Ok(sessions);
+    }
+
+    private bool TryParseCalendarDate(
+        string? value,
+        out DateTime calendarDate)
+    {
+        calendarDate = default;
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            ModelState.AddModelError(
+                "date",
+                "Ange ett datum i formatet yyyy-MM-dd.");
+
+            return false;
+        }
+
+        if (!DateOnly.TryParseExact(
+                value,
+                "yyyy-MM-dd",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out var parsedDate))
+        {
+            ModelState.AddModelError(
+                "date",
+                "Ogiltigt datum. Använd formatet yyyy-MM-dd, " +
+                "exempelvis 2026-11-09.");
+
+            return false;
+        }
+
+        if (parsedDate.Year < 1900 || parsedDate.Year > 9998)
+        {
+            ModelState.AddModelError(
+                "date",
+                "Kalenderdatum måste ligga mellan år 1900 och 9998.");
+
+            return false;
+        }
+
+        // Ett lokalt kalenderdatum, inte en UTC-tidpunkt.
+        // CalendarService omvandlar periodens gränser till UTC.
+        calendarDate = parsedDate.ToDateTime(
+            TimeOnly.MinValue,
+            DateTimeKind.Unspecified);
+
+        return true;
     }
 }
