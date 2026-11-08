@@ -1,89 +1,140 @@
-﻿using progressa.Data;
+﻿using Microsoft.EntityFrameworkCore;
+using progressa.Data;
 using progressa.Dtos;
 using progressa.Services.IServices;
-using Microsoft.EntityFrameworkCore;
 
-namespace progressa.Services
+namespace progressa.Services;
+
+public class CalendarService(ApplicationDbContext context)
+    : ICalendarService
 {
-    public class CalendarService : ICalendarService
+    private static readonly TimeZoneInfo CalendarTimeZone =
+        TimeZoneInfo.FindSystemTimeZoneById("Europe/Stockholm");
+
+    public async Task<int?> GetDefaultCalendarIdAsync(string userId)
     {
-        private readonly ApplicationDbContext _context;
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
 
-        public CalendarService(ApplicationDbContext context)
+        return await context.Calendars
+            .AsNoTracking()
+            .Where(calendar => calendar.OwnerUserId == userId)
+            .OrderBy(calendar => calendar.Id)
+            .Select(calendar => (int?)calendar.Id)
+            .FirstOrDefaultAsync();
+    }
+
+    public Task<List<CalendarSessionDto>> GetByDayAsync(
+        DateTime date,
+        string userId)
+    {
+        ValidateDate(date);
+
+        var localStart = AsLocalDate(date);
+        var localEnd = localStart.AddDays(1);
+
+        return GetByLocalPeriodAsync(
+            localStart,
+            localEnd,
+            userId);
+    }
+
+    public Task<List<CalendarSessionDto>> GetByWeekAsync(
+        DateTime date,
+        string userId)
+    {
+        ValidateDate(date);
+
+        var localDate = AsLocalDate(date);
+
+        // Veckan börjar på måndag.
+        var daysSinceMonday =
+            ((int)localDate.DayOfWeek + 6) % 7;
+
+        var localStart = localDate.AddDays(-daysSinceMonday);
+        var localEnd = localStart.AddDays(7);
+
+        return GetByLocalPeriodAsync(
+            localStart,
+            localEnd,
+            userId);
+    }
+
+    public Task<List<CalendarSessionDto>> GetByMonthAsync(
+        DateTime date,
+        string userId)
+    {
+        ValidateDate(date);
+
+        var localStart = new DateTime(
+            date.Year,
+            date.Month,
+            1,
+            0,
+            0,
+            0,
+            DateTimeKind.Unspecified);
+
+        var localEnd = localStart.AddMonths(1);
+
+        return GetByLocalPeriodAsync(
+            localStart,
+            localEnd,
+            userId);
+    }
+
+    private async Task<List<CalendarSessionDto>> GetByLocalPeriodAsync(
+        DateTime localStart,
+        DateTime localEnd,
+        string userId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+
+        // Omvandla båda gränserna separat så att även
+        // dygn med 23 eller 25 timmar hanteras korrekt.
+        var startUtc = TimeZoneInfo.ConvertTimeToUtc(
+            localStart,
+            CalendarTimeZone);
+
+        var endUtc = TimeZoneInfo.ConvertTimeToUtc(
+            localEnd,
+            CalendarTimeZone);
+
+        return await context.ActivitySessions
+            .AsNoTracking()
+            .Where(session =>
+                session.OwnerUserId == userId &&
+                session.ScheduledAt >= startUtc &&
+                session.ScheduledAt < endUtc)
+            .OrderBy(session => session.ScheduledAt)
+            .ThenBy(session => session.Id)
+            .Select(session => new CalendarSessionDto
+            {
+                Id = session.Id,
+                CalendarId = session.CalendarId,
+                CategoryName = session.Category.Name,
+                ScheduledAt = session.ScheduledAt,
+                PlannedDurationInMinutes =
+                    session.PlannedDurationInMinutes,
+                Status = session.Status
+            })
+            .ToListAsync();
+    }
+
+    private static DateTime AsLocalDate(DateTime date)
+    {
+        // Datumet representerar en svensk kalenderdag.
+        return DateTime.SpecifyKind(
+            date.Date,
+            DateTimeKind.Unspecified);
+    }
+
+    private static void ValidateDate(DateTime date)
+    {
+        if (date.Year < 1900 || date.Year > 9998)
         {
-            _context = context;
-        }
-
-        // Hämta användarens kalender-ID
-        public async Task<int?> GetDefaultCalendarIdAsync(string userId)
-        {
-            return await _context.Calendars
-                .Where(c => c.OwnerUserId == userId)
-                .OrderBy(c => c.Id)
-                .Select(c => (int?)c.Id)
-                .FirstOrDefaultAsync();
-        }
-
-        // Hämta användarens aktivitetspass för en specifik dag
-        public async Task<List<CalendarSessionDto>> GetByDayAsync(DateTime date, string userId)
-        {
-            var start = date.Date;
-            var end = start.AddDays(1);
-
-            return await _context.ActivitySessions
-                .Where(a => a.OwnerUserId == userId && a.ScheduledAt >= start && a.ScheduledAt < end)
-                .Select(a => new CalendarSessionDto
-                {
-                    Id = a.Id,
-                    CalendarId = a.CalendarId,
-                    CategoryName = a.Category.Name,
-                    ScheduledAt = a.ScheduledAt,
-                    PlannedDurationInMinutes = a.PlannedDurationInMinutes,
-                    Status = a.Status
-                })
-                .ToListAsync();
-        }
-
-        // Hämta användarens aktivitetspass för en specifik vecka
-        public async Task<List<CalendarSessionDto>> GetByWeekAsync(DateTime date, string userId)
-        {
-            var start = date.Date.AddDays(-((int)date.DayOfWeek + 6) % 7);
-            var end = start.AddDays(7);
-
-            return await _context.ActivitySessions
-                .Where(a => a.OwnerUserId == userId && a.ScheduledAt >= start && a.ScheduledAt < end)
-                .OrderBy(a => a.ScheduledAt)
-                .Select(a => new CalendarSessionDto
-                {
-                    Id = a.Id,
-                    CalendarId = a.CalendarId,
-                    CategoryName = a.Category.Name,
-                    ScheduledAt = a.ScheduledAt,
-                    PlannedDurationInMinutes = a.PlannedDurationInMinutes,
-                    Status = a.Status
-                })
-                .ToListAsync();
-        }
-
-        // Hämta användarens aktivitetspass för en specifik månad
-        public async Task<List<CalendarSessionDto>> GetByMonthAsync(DateTime date, string userId)
-        {
-            var start = new DateTime(date.Year, date.Month, 1);
-            var end = start.AddMonths(1);
-
-            return await _context.ActivitySessions
-                .Where(a => a.OwnerUserId == userId && a.ScheduledAt >= start && a.ScheduledAt < end)
-                .OrderBy(a => a.ScheduledAt)
-                .Select(a => new CalendarSessionDto
-                {
-                    Id = a.Id,
-                    CalendarId = a.CalendarId,
-                    CategoryName = a.Category.Name,
-                    ScheduledAt = a.ScheduledAt,
-                    PlannedDurationInMinutes = a.PlannedDurationInMinutes,
-                    Status = a.Status
-                })
-                .ToListAsync();
+            throw new ArgumentException(
+                "Kalenderdatum måste ligga mellan år 1900 och 9998.",
+                nameof(date));
         }
     }
 }

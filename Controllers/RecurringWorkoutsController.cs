@@ -72,13 +72,34 @@ public class RecurringWorkoutsController(
             dto,
             ct);
 
-        if (result.Status == ScheduleWriteStatus.InvalidReferences)
+        switch (result.Status)
         {
-            return InvalidReferences();
+            case ScheduleWriteStatus.InvalidStartDate:
+                return InvalidStartDate(
+                    "Startdatum måste vara idag eller senare enligt svensk tid.");
+
+            case ScheduleWriteStatus.InvalidReferences:
+                return InvalidReferences();
+
+            case ScheduleWriteStatus.NotFound:
+                return NotFound();
+
+            case ScheduleWriteStatus.Success:
+                break;
+
+            default:
+                throw new InvalidOperationException(
+                    "Okänt resultat vid skapande av veckoschema.");
+        }
+
+        if (!result.Id.HasValue)
+        {
+            throw new InvalidOperationException(
+                "Det skapade veckoschemat saknar ID.");
         }
 
         var schedule = await service.GetAsync(
-            result.Id!.Value,
+            result.Id.Value,
             userId,
             ct);
 
@@ -116,8 +137,16 @@ public class RecurringWorkoutsController(
             case ScheduleWriteStatus.InvalidReferences:
                 return InvalidReferences();
 
-            default:
+            case ScheduleWriteStatus.InvalidStartDate:
+                return InvalidStartDate(
+                    "Behåll schemats tidigare startdatum eller välj idag eller senare.");
+
+            case ScheduleWriteStatus.Success:
                 return NoContent();
+
+            default:
+                throw new InvalidOperationException(
+                    "Okänt resultat vid uppdatering av veckoschema.");
         }
     }
 
@@ -189,5 +218,14 @@ public class RecurringWorkoutsController(
         return Problem(
             statusCode: StatusCodes.Status400BadRequest,
             title: "Kalendern eller aktiviteten finns inte eller tillhör inte dig.");
+    }
+
+    private ActionResult InvalidStartDate(string message)
+    {
+        ModelState.AddModelError(
+            nameof(SaveRecurringWorkoutDto.StartDate),
+            message);
+
+        return ValidationProblem(ModelState);
     }
 }

@@ -16,9 +16,7 @@ public class RecurringWorkoutService(
     {
         var schedules = await repository.GetAllAsync(userId, ct);
 
-        return schedules
-            .Select(MapToDto)
-            .ToList();
+        return schedules.Select(MapToDto).ToList();
     }
 
     public async Task<RecurringWorkoutDto?> GetAsync(
@@ -28,13 +26,9 @@ public class RecurringWorkoutService(
     {
         var schedule = await repository.GetAsync(id, userId, ct);
 
-        return schedule is null
-            ? null
-            : MapToDto(schedule);
+        return schedule is null ? null : MapToDto(schedule);
     }
 
-    // id = null skapar ett nytt schema.
-    // Ett angivet id uppdaterar ett befintligt schema.
     public async Task<ScheduleWriteResult> SaveAsync(
         int? id,
         string userId,
@@ -59,8 +53,7 @@ public class RecurringWorkoutService(
 
             if (existing is null)
             {
-                return new ScheduleWriteResult(
-                    ScheduleWriteStatus.NotFound);
+                return new(ScheduleWriteStatus.NotFound);
             }
 
             schedule = existing;
@@ -73,6 +66,25 @@ public class RecurringWorkoutService(
             };
         }
 
+        var timeZone = TimeZoneInfo.FindSystemTimeZoneById(
+            dto.TimeZoneId);
+
+        var localNow = TimeZoneInfo.ConvertTime(
+            DateTimeOffset.UtcNow,
+            timeZone);
+
+        var today = DateOnly.FromDateTime(localNow.DateTime);
+        var requestedStartDate = dto.StartDate!.Value;
+
+        var keepsExistingStartDate =
+            id.HasValue &&
+            requestedStartDate == schedule.StartDate;
+
+        if (requestedStartDate < today && !keepsExistingStartDate)
+        {
+            return new(ScheduleWriteStatus.InvalidStartDate);
+        }
+
         var ownsReferences = await repository.OwnsReferencesAsync(
             userId,
             dto.CalendarId,
@@ -81,8 +93,7 @@ public class RecurringWorkoutService(
 
         if (!ownsReferences)
         {
-            return new ScheduleWriteResult(
-                ScheduleWriteStatus.InvalidReferences);
+            return new(ScheduleWriteStatus.InvalidReferences);
         }
 
         schedule.CalendarId = dto.CalendarId;
@@ -90,7 +101,7 @@ public class RecurringWorkoutService(
         schedule.DayOfWeek = dto.DayOfWeek!.Value;
         schedule.LocalTime = dto.LocalTime!.Value;
         schedule.TimeZoneId = dto.TimeZoneId;
-        schedule.StartDate = dto.StartDate!.Value;
+        schedule.StartDate = requestedStartDate;
         schedule.EndDate = dto.EndDate;
         schedule.DurationInMinutes = dto.DurationInMinutes;
 
@@ -101,9 +112,7 @@ public class RecurringWorkoutService(
 
         await repository.SaveAsync(ct);
 
-        return new ScheduleWriteResult(
-            ScheduleWriteStatus.Success,
-            schedule.Id);
+        return new(ScheduleWriteStatus.Success, schedule.Id);
     }
 
     public async Task<bool> DeleteAsync(
@@ -119,14 +128,13 @@ public class RecurringWorkoutService(
         }
 
         repository.Remove(schedule);
-
         await repository.SaveAsync(ct);
 
         return true;
     }
 
     // Beräknar tillfällen utan att skapa ActivitySession-poster.
-    // from är inkluderande och to är exklusivt.
+    // from inkluderas och to inkluderas inte.
     public async Task<List<RecurringWorkoutOccurrenceDto>>
         GetOccurrencesAsync(
             string userId,
@@ -143,7 +151,6 @@ public class RecurringWorkoutService(
         }
 
         var schedules = await repository.GetAllAsync(userId, ct);
-
         var occurrences = new List<RecurringWorkoutOccurrenceDto>();
 
         foreach (var schedule in schedules)
@@ -180,18 +187,18 @@ public class RecurringWorkoutService(
                     schedule.LocalTime,
                     DateTimeKind.Unspecified);
 
-                // Vid övergång till sommartid finns vissa klockslag inte.
-                // Det tillfället hoppas över.
+                // Klockslag som inte finns vid vårens omställning
+                // ger inget tillfälle.
                 if (timeZone.IsInvalidTime(localDateTime))
                 {
                     continue;
                 }
 
-                // Vid höstens dubbla timme väljs den senare förekomsten.
                 DateTimeOffset scheduledAtUtc;
 
                 if (timeZone.IsAmbiguousTime(localDateTime))
                 {
+                    // Välj den senare förekomsten vid höstens omställning.
                     var offset = timeZone
                         .GetAmbiguousTimeOffsets(localDateTime)
                         .Min();
@@ -209,16 +216,15 @@ public class RecurringWorkoutService(
                     scheduledAtUtc = new DateTimeOffset(utcDateTime);
                 }
 
-                occurrences.Add(
-                    new RecurringWorkoutOccurrenceDto(
-                        ScheduleId: schedule.Id,
-                        CalendarId: schedule.CalendarId,
-                        CategoryId: schedule.CategoryId,
-                        CategoryName: schedule.Category.Name,
-                        LocalDate: date,
-                        LocalTime: schedule.LocalTime,
-                        ScheduledAtUtc: scheduledAtUtc,
-                        DurationInMinutes: schedule.DurationInMinutes));
+                occurrences.Add(new RecurringWorkoutOccurrenceDto(
+                    ScheduleId: schedule.Id,
+                    CalendarId: schedule.CalendarId,
+                    CategoryId: schedule.CategoryId,
+                    CategoryName: schedule.Category.Name,
+                    LocalDate: date,
+                    LocalTime: schedule.LocalTime,
+                    ScheduledAtUtc: scheduledAtUtc,
+                    DurationInMinutes: schedule.DurationInMinutes));
             }
         }
 

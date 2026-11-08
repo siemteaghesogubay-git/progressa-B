@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using progressa.Models;
+using progressa.Data.Configurations;
 
 namespace progressa.Data;
 
@@ -195,5 +196,11 @@ public class ApplicationDbContext(
                 .HasForeignKey<UserSettings>(settings => settings.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+
+        // Konfigurationer
+
+        builder.ApplyConfiguration(new ActivitySessionUtcConfiguration());
+
+
     }
 }
