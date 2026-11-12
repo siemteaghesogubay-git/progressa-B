@@ -10,6 +10,9 @@ namespace progressa.Dtos
         [Range(1, int.MaxValue, ErrorMessage = "Målvärdet måste vara större än 0.")]
         public int Target { get; set; }
 
+        public GoalMetric? Metric { get; set; }
+        public int? CategoryId { get; set; }
+
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
 
