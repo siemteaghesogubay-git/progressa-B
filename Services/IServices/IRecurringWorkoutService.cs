@@ -6,7 +6,8 @@ public enum ScheduleWriteStatus
 {
     Success,
     NotFound,
-    InvalidReferences
+    InvalidReferences,
+    InvalidStartDate
 }
 
 public record ScheduleWriteResult(

@@ -18,6 +18,12 @@ public interface IGoalRepository
         string userId,
         CancellationToken ct = default);
 
+    Task<int?> GetProgressAsync(
+        Goal goal,
+        DateTime startUtc,
+        DateTime endExclusiveUtc,
+        CancellationToken ct = default);
+
     Task<bool> HasChallengesAsync(
         int id,
         string userId,

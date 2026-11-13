@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using progressa.Converters;
 using progressa.Data;
 using progressa.Middleware;
 using progressa.Models;
@@ -13,7 +14,6 @@ using Scalar.AspNetCore;
 using System.Text;
 using System.Threading.RateLimiting;
 
-
 var builder = WebApplication.CreateBuilder(args);
 
 // =========================
@@ -22,37 +22,49 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<IGoalRepository, GoalRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ICalendarRepository, CalendarRepository>();
-builder.Services.AddScoped<IActivitySessionRepository, ActivitySessionRepository>();
-builder.Services.AddScoped< IRecurringWorkoutRepository, RecurringWorkoutRepository>();
 
+builder.Services.AddScoped<
+    IActivitySessionRepository,
+    ActivitySessionRepository>();
+
+builder.Services.AddScoped<
+    IRecurringWorkoutRepository,
+    RecurringWorkoutRepository>();
 
 // =========================
 // SERVICES
 // =========================
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IActivitySessionService, ActivitySessionService>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IGoalService, GoalService>();
 builder.Services.AddScoped<ICalendarService, CalendarService>();
-builder.Services.AddScoped<IUserService, UserService>();
 
-// E-post (Azure Communication Services)
-builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));
+builder.Services.AddScoped<
+    IActivitySessionService,
+    ActivitySessionService>();
+
+builder.Services.AddScoped<
+    IRecurringWorkoutService,
+    RecurringWorkoutService>();
+
+// E-post
+builder.Services.Configure<EmailSettings>(
+    builder.Configuration.GetSection("Email"));
+
 builder.Services.AddScoped<IEmailService, AzureEmailService>();
-builder.Services.AddScoped< IRecurringWorkoutService, RecurringWorkoutService>();
-
-
 
 // =========================
 // DATABAS
 // =========================
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")
-    ));
+        builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // =========================
 // IDENTITY
 // =========================
+builder.Services.AddDataProtection();
+
 builder.Services
     .AddIdentityCore<ApplicationUser>(options =>
     {
@@ -70,7 +82,9 @@ builder.Services
 
 // Återställningstoken gäller i en timme.
 builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
-    options.TokenLifespan = TimeSpan.FromHours(1));
+{
+    options.TokenLifespan = TimeSpan.FromHours(1);
+});
 
 // =========================
 // JWT
@@ -136,15 +150,24 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
+    {
         policy.WithOrigins("http://localhost:5173")
-              .AllowAnyHeader()
-              .AllowAnyMethod());
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
 });
 
 // =========================
-// CONTROLLERS OCH OPENAPI
+// CONTROLLERS, JSON OCH OPENAPI
 // =========================
-builder.Services.AddControllers();
+builder.Services
+    .AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(
+            new StrictDateTimeOffsetConverter());
+    });
+
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
@@ -168,7 +191,9 @@ using (var scope = app.Services.CreateScope())
             {
                 throw new InvalidOperationException(
                     $"Kunde inte skapa rollen {roleName}: " +
-                    string.Join(", ", result.Errors.Select(e => e.Description)));
+                    string.Join(
+                        ", ",
+                        result.Errors.Select(error => error.Description)));
             }
         }
     }
@@ -188,12 +213,13 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseRateLimiter();
-
+app.UseRouting();
 app.UseCors("Frontend");
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseRateLimiter();
 
 app.MapControllers();
 

@@ -17,6 +17,34 @@ public class ActivitySessionService(ApplicationDbContext db) : IActivitySessionS
             .Select(c => new CategoryOptionDto { Id = c.Id, Name = c.Name })
             .ToListAsync(cancellationToken);
 
+    public async Task<CategoryOptionDto> CreateCategoryAsync(
+        string userId,
+        CreateActivityCategoryDto dto,
+        CancellationToken ct = default)
+    {
+        var name = dto.Name.Trim();
+        var category = await db.Categories.FirstOrDefaultAsync(
+            c => c.OwnerUserId == userId && c.Name == name,
+            ct);
+
+        if (category is null)
+        {
+            category = new Category
+            {
+                Name = name,
+                OwnerUserId = userId
+            };
+            db.Categories.Add(category);
+            await db.SaveChangesAsync(ct);
+        }
+
+        return new CategoryOptionDto
+        {
+            Id = category.Id,
+            Name = category.Name
+        };
+    }
+
     public async Task<CreateSessionResult> CreateAsync(string userId, CreateActivitySessionDto dto, CancellationToken cancellationToken = default)
     {
         // Aktiviteten måste finnas och vara tillgänglig för användaren

@@ -187,11 +187,17 @@ namespace progressa.Migrations
                     b.Property<int?>("CalendarId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("CategoryId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime2");
 
                     b.Property<bool>("IsCompleted")
                         .HasColumnType("bit");
+
+                    b.Property<int?>("Metric")
+                        .HasColumnType("int");
 
                     b.Property<string>("OwnerUserId")
                         .IsRequired()
@@ -211,6 +217,8 @@ namespace progressa.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CalendarId");
+
+                    b.HasIndex("CategoryId");
 
                     b.HasIndex("OwnerUserId");
 
@@ -635,6 +643,10 @@ namespace progressa.Migrations
                         .HasForeignKey("CalendarId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Category", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId");
+
                     b.HasOne("ApplicationUser", "OwnerUser")
                         .WithMany("Goals")
                         .HasForeignKey("OwnerUserId")
@@ -642,6 +654,8 @@ namespace progressa.Migrations
                         .IsRequired();
 
                     b.Navigation("Calendar");
+
+                    b.Navigation("Category");
 
                     b.Navigation("OwnerUser");
                 });
