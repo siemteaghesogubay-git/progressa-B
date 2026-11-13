@@ -115,7 +115,8 @@ public class CalendarService(ApplicationDbContext context)
                 ScheduledAt = session.ScheduledAt,
                 PlannedDurationInMinutes =
                     session.PlannedDurationInMinutes,
-                Status = session.Status
+                Status = session.Status,
+                ActualDurationInMinutes = session.ActualDurationInMinutes
             })
             .ToListAsync();
     }
