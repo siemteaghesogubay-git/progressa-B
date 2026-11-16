@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using progressa.Data;
+using progressa.Models;
 using progressa.Repositories.interfaces;
 
 namespace progressa.Repositories;
@@ -38,6 +39,36 @@ public class GoalRepository(ApplicationDbContext db) : IGoalRepository
             .FirstOrDefaultAsync(
                 g => g.Id == id && g.OwnerUserId == userId,
                 ct);
+    }
+
+    public async Task<int?> GetProgressAsync(
+        Goal goal,
+        DateTime startUtc,
+        DateTime endExclusiveUtc,
+        CancellationToken ct = default)
+    {
+        var sessions = db.ActivitySessions.Where(session =>
+            session.OwnerUserId == goal.OwnerUserId &&
+            session.Status == SessionStatus.Completed &&
+            session.ScheduledAt >= startUtc &&
+            session.ScheduledAt < endExclusiveUtc);
+
+        if (goal.CategoryId is int categoryId)
+        {
+            sessions = sessions.Where(session => session.CategoryId == categoryId);
+        }
+
+        return goal.Metric switch
+        {
+            GoalMetric.Sessions => await sessions.CountAsync(ct),
+            GoalMetric.Minutes => await sessions.SumAsync(
+                session => session.ActualDurationInMinutes, ct),
+            GoalMetric.Variety => await sessions
+                .Select(session => session.CategoryId)
+                .Distinct()
+                .CountAsync(ct),
+            _ => null
+        };
     }
 
     public Task<bool> HasChallengesAsync(

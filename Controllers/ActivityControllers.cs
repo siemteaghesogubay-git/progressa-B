@@ -27,6 +27,20 @@ public class ActivitySessionsController(IActivitySessionService service) : Contr
         return Ok(await service.GetCategoriesAsync(CurrentUserId));
     }
 
+    [HttpPost("categories")]
+    public async Task<IActionResult> CreateCategory(
+        CreateActivityCategoryDto dto,
+        CancellationToken ct)
+
+    {
+        var userId = CurrentUserId;
+        if (userId is null)
+            return Unauthorized();
+
+        var category = await service.CreateCategoryAsync(userId, dto, ct);
+        return Ok(category);
+    }
+
     [HttpPost]
     [ProducesResponseType(typeof(ActivitySessionDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]

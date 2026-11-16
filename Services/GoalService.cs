@@ -6,7 +6,8 @@ namespace progressa.Services;
 
 public class GoalService(
     IGoalRepository goals,
-    ICalendarRepository calendars) : IGoalService
+    ICalendarRepository calendars,
+    ICategoryRepository categories) : IGoalService
 {
     public async Task<List<GoalDto>> GetAllAsync(
         string userId,
@@ -14,9 +15,12 @@ public class GoalService(
     {
         var userGoals = await goals.GetAllAsync(userId, ct);
 
-        return userGoals
-            .Select(MapToDto)
-            .ToList();
+        var result = new List<GoalDto>();
+        foreach (var goal in userGoals)
+        {
+            result.Add(await MapToDtoAsync(goal, ct));
+        }
+        return result;
     }
 
     public async Task<GoalDto?> GetByIdAsync(
@@ -26,7 +30,7 @@ public class GoalService(
     {
         var goal = await goals.GetByIdAsync(id, userId, ct);
 
-        return goal is null ? null : MapToDto(goal);
+        return goal is null ? null : await MapToDtoAsync(goal, ct);
     }
 
     public async Task<GoalDto> CreateAsync(
@@ -34,6 +38,7 @@ public class GoalService(
         string userId,
         CancellationToken ct = default)
     {
+        await ValidateGoalMetricAsync(dto.Metric, dto.CategoryId, userId, ct);
         await ValidateAsync(
             dto.StartDate,
             dto.EndDate,
@@ -45,6 +50,8 @@ public class GoalService(
         {
             Title = dto.Title,
             Target = dto.Target,
+            Metric = dto.Metric,
+            CategoryId = dto.CategoryId,
             StartDate = dto.StartDate,
             EndDate = dto.EndDate,
             IsCompleted = false,
@@ -54,7 +61,7 @@ public class GoalService(
 
         await goals.AddAsync(goal, ct);
 
-        return MapToDto(goal);
+        return await MapToDtoAsync(goal, ct);
     }
 
     public async Task<GoalDto?> UpdateAsync(
@@ -67,7 +74,7 @@ public class GoalService(
 
         if (goal is null)
             return null;
-
+        await ValidateGoalMetricAsync(dto.Metric, dto.CategoryId, userId, ct);
         await ValidateAsync(
             dto.StartDate,
             dto.EndDate,
@@ -77,6 +84,11 @@ public class GoalService(
 
         goal.Title = dto.Title;
         goal.Target = dto.Target;
+        if (dto.Metric.HasValue)
+        {
+            goal.Metric = dto.Metric;
+            goal.CategoryId = dto.CategoryId;
+        }
         goal.StartDate = dto.StartDate;
         goal.EndDate = dto.EndDate;
         goal.IsCompleted = dto.IsCompleted;
@@ -84,7 +96,7 @@ public class GoalService(
 
         await goals.SaveChangesAsync(ct);
 
-        return MapToDto(goal);
+        return await MapToDtoAsync(goal, ct);
     }
 
     public async Task<bool> DeleteAsync(
@@ -134,13 +146,69 @@ public class GoalService(
         }
     }
 
-    private static GoalDto MapToDto(Goal goal)
+    private async Task ValidateGoalMetricAsync(
+    GoalMetric? metric,
+    int? categoryId,
+    string userId,
+    CancellationToken ct)
     {
+        if (metric.HasValue && !Enum.IsDefined(typeof(GoalMetric), metric.Value))
+        {
+            throw new ArgumentException("Ogiltigt mått för målet.");
+        }
+
+        if (categoryId is <= 0)
+        {
+            throw new ArgumentException("Ogiltigt id för aktiviteten.");
+        }
+
+        if (metric == GoalMetric.Sessions && !categoryId.HasValue)
+        {
+            throw new ArgumentException("Välj en aktivitet för att räkna pass.");
+        }
+
+        if (categoryId.HasValue && (metric is null || metric == GoalMetric.Variety))
+        {
+            throw new ArgumentException("Det här målet ska inte kopplas till en enskild aktivitet.");
+        }
+
+        if (categoryId.HasValue)
+        {
+            var category = await categories.GetByIdAsync(categoryId.Value, userId, ct);
+
+            if (category is null)
+            {
+                throw new ArgumentException("Aktiviteten finns inte bland dina aktiviteter.");
+            }
+        }
+    }
+
+    private async Task<GoalDto> MapToDtoAsync(Goal goal, CancellationToken ct)
+    {
+        int? progress = null;
+
+        if (goal.Metric.HasValue)
+        {
+            var timeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Stockholm");
+            var startDate = DateTime.SpecifyKind(goal.StartDate.Date, DateTimeKind.Unspecified);
+            var endDate = DateTime.SpecifyKind(goal.EndDate.Date, DateTimeKind.Unspecified);
+
+            var startUtc = TimeZoneInfo.ConvertTimeToUtc(startDate, timeZone);
+            var endExclusiveUtc = endDate == DateTime.MaxValue.Date
+                ? DateTime.MaxValue
+                : TimeZoneInfo.ConvertTimeToUtc(endDate.AddDays(1), timeZone);
+
+            progress = await goals.GetProgressAsync(goal, startUtc, endExclusiveUtc, ct);
+        }
+
         return new GoalDto
         {
             Id = goal.Id,
             Title = goal.Title,
             Target = goal.Target,
+            Metric = goal.Metric,
+            CategoryId = goal.CategoryId,
+            Progress = progress,
             StartDate = goal.StartDate,
             EndDate = goal.EndDate,
             IsCompleted = goal.IsCompleted,

@@ -43,6 +43,11 @@ public interface IActivitySessionService
         string userId,
         CancellationToken ct = default);
 
+    Task<CategoryOptionDto> CreateCategoryAsync(
+        string userId,
+        CreateActivityCategoryDto dto,
+        CancellationToken ct = default);
+
     Task<CreateSessionResult> CreateAsync(
         string userId,
         CreateActivitySessionDto dto,

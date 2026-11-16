@@ -7,6 +7,7 @@
         public string CategoryName { get; set; } = string.Empty;
         public DateTime ScheduledAt { get; set; }
         public int PlannedDurationInMinutes { get; set; }
+        public int? ActualDurationInMinutes { get; set; }
         public string Status { get; set; } = string.Empty;
     }
 }

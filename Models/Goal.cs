@@ -20,4 +20,15 @@ public class Goal
     public Calendar? Calendar { get; set; }
 
     public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();
+
+    public GoalMetric? Metric { get; set; }
+    public int? CategoryId { get; set; }
+    public Category? Category { get; set; }
+}
+
+public enum GoalMetric
+{
+    Sessions = 1,
+    Minutes = 2,
+    Variety = 3
 }
