@@ -155,7 +155,5 @@ namespace Progressa.Tests.Controllers
             Assert.IsType<UnauthorizedResult>(result);
             mock.Verify(s => s.DeleteAccountAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         }
-
-
     }
 }
