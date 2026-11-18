@@ -107,7 +107,9 @@ public class AuthService(
         {
             Token = tokenString,
             UserId = user.Id,
-            Email = user.Email!
+            Email = user.Email!,
+            FirstName = user.FirstName,
+            LastName = user.LastName
         };
     }
 
