@@ -222,5 +222,10 @@ app.UseAuthorization();
 app.UseRateLimiter();
 
 app.MapControllers();
+app.MapGet("/", () => Results.Ok(new
+{
+    Application = "Progressa API",
+    Status = "Running"
+})).AllowAnonymous();
 
 app.Run();
