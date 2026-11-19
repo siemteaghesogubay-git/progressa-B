@@ -18,6 +18,9 @@ public class AuthService(
     ILogger<AuthService> logger
 ) : IAuthService
 {
+    // =========================
+    // REGISTRERING
+    // =========================
     public async Task<RegisterResult> RegisterAsync(RegisterDto dto)
     {
         var email = dto.Email.Trim();
@@ -31,16 +34,18 @@ public class AuthService(
             Email = email,
             FirstName = dto.FirstName.Trim(),
             LastName = dto.LastName.Trim(),
-            Age = dto.Age
+            Age = dto.Age,
+            EmailConfirmed = false
         };
 
-        // Skapa en standardkalender och 3 kategorier för användaren
+        // Skapa standardkalender och kategorier
         user.Calendars.Add(new Calendar());
         user.Categories.Add(new Category { Name = "Löpning" });
         user.Categories.Add(new Category { Name = "Styrketräning" });
         user.Categories.Add(new Category { Name = "Promenad" });
 
-        var create = await userManager.CreateAsync(user, dto.Password);
+        var create = await userManager.CreateAsync(
+            user, dto.Password);
 
         if (!create.Succeeded)
         {
@@ -51,8 +56,19 @@ public class AuthService(
             }
 
             return RegisterResult.Invalid(
-                create.Errors.Select(e => e.Description)
-            );
+                create.Errors.Select(e => e.Description));
+        }
+
+        // NYTT: Skicka verifieringsmejl
+        try
+        {
+            await SendVerificationEmailAsync(user);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex,
+                "Kunde inte skicka verifieringsmejl.");
         }
 
         return RegisterResult.Ok(new RegisterResponseDto
@@ -65,33 +81,40 @@ public class AuthService(
         });
     }
 
+    // =========================
+    // INLOGGNING
+    // =========================
     public async Task<LoginResponseDto?> LoginAsync(LoginDto dto)
     {
         var email = dto.Email.Trim();
         var user = await userManager.FindByEmailAsync(email);
 
-        if (user == null)
+        if (user is null)
             return null;
 
-        var correctPassword = await userManager.CheckPasswordAsync(user, dto.Password);
+        var correctPassword =
+            await userManager.CheckPasswordAsync(
+                user, dto.Password);
+
         if (!correctPassword)
             return null;
 
         var jwt = configuration.GetSection("Jwt");
         var key = jwt["Key"]!;
 
-        // Information som sparas i token
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id),
             new Claim(JwtRegisteredClaimNames.Email, user.Email!)
         };
 
-        // Skapa signeringsnyckel
-        var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
-        var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
+        var signingKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(key));
 
-        // Skapa jwt-token
+        var credentials = new SigningCredentials(
+            signingKey,
+            SecurityAlgorithms.HmacSha256);
+
         var token = new JwtSecurityToken(
             issuer: jwt["Issuer"],
             audience: jwt["Audience"],
@@ -100,8 +123,8 @@ public class AuthService(
             signingCredentials: credentials
         );
 
-        // Omvandla token till text
-        var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+        var tokenString =
+            new JwtSecurityTokenHandler().WriteToken(token);
 
         return new LoginResponseDto
         {
@@ -113,77 +136,254 @@ public class AuthService(
         };
     }
 
+    // =========================
+    // NYTT: VERIFIERA E-POST
+    // =========================
+    public async Task<bool> VerifyEmailAsync(
+        string email,
+        string token)
+    {
+        var user = await userManager.FindByEmailAsync(
+            email.Trim());
+
+        if (user is null)
+            return false;
+
+        string decodedToken;
+
+        try
+        {
+            decodedToken = Encoding.UTF8.GetString(
+                WebEncoders.Base64UrlDecode(token));
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+
+        var result = await userManager.ConfirmEmailAsync(
+            user,
+            decodedToken);
+
+        return result.Succeeded;
+    }
+
+    // =========================
+    // NYTT: SKICKA NY VERIFIERINGSLÄNK
+    // =========================
+    public async Task ResendVerificationEmailAsync(string email)
+    {
+        var user = await userManager.FindByEmailAsync(
+            email.Trim());
+
+        if (user is null || user.EmailConfirmed)
+            return;
+
+        try
+        {
+            await SendVerificationEmailAsync(user);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex,
+                "Kunde inte skicka nytt verifieringsmejl.");
+        }
+    }
+
+    // =========================
+    // NYTT: SKICKA VERIFIERINGSMEJL
+    // =========================
+    private async Task SendVerificationEmailAsync(
+        ApplicationUser user)
+    {
+        var token =
+            await userManager.GenerateEmailConfirmationTokenAsync(
+                user);
+
+        var encodedToken = WebEncoders.Base64UrlEncode(
+            Encoding.UTF8.GetBytes(token));
+
+        var baseUrl = (
+            configuration["Frontend:BaseUrl"]
+            ?? "http://localhost:5173"
+        ).TrimEnd('/');
+
+        var link =
+            $"{baseUrl}/verify-email" +
+            $"?email={Uri.EscapeDataString(user.Email!)}" +
+            $"&token={encodedToken}";
+
+        var body = $"""
+            <h2>Välkommen till Progressa!</h2>
+
+            <p>Hej {WebUtility.HtmlEncode(user.FirstName)},</p>
+
+            <p>
+                Tack för att du har registrerat dig hos Progressa.
+                Klicka på knappen nedan för att verifiera
+                din e-postadress.
+            </p>
+
+            <p>
+                <a href="{WebUtility.HtmlEncode(link)}"
+                   style="background-color:#2563eb;
+                          color:white;
+                          padding:12px 24px;
+                          text-decoration:none;
+                          border-radius:8px;
+                          display:inline-block;">
+                    Verifiera e-postadress
+                </a>
+            </p>
+
+            <p>Verifieringslänken gäller i en timme.</p>
+
+            <p>
+                Om du inte har registrerat dig hos Progressa
+                kan du ignorera detta mejl.
+            </p>
+
+            <p>Med vänliga hälsningar,<br>Progressa-teamet</p>
+            """;
+
+        await emailService.SendAsync(
+            user.Email!,
+            "Verifiera din e-postadress – Progressa",
+            body);
+    }
+
+    // =========================
+    // GLÖMT LÖSENORD
+    // =========================
     public async Task ForgotPasswordAsync(string email)
     {
-        var user = await userManager.FindByEmailAsync(email.Trim());
-        if (user is null) return; // utåt blir svaret detsamma
+        var user = await userManager.FindByEmailAsync(
+            email.Trim());
 
-        // Identity skapar en säker token som är knuten till användarens SecurityStamp
-        var token = await userManager.GeneratePasswordResetTokenAsync(user);
-        var encoded = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+        if (user is null)
+            return;
 
-        var baseUrl = configuration["Frontend:BaseUrl"] ?? "http://localhost:5173";
-        var link = $"{baseUrl}/reset-password?email={Uri.EscapeDataString(user.Email!)}&token={encoded}";
+        var token =
+            await userManager.GeneratePasswordResetTokenAsync(
+                user);
+
+        var encoded = WebEncoders.Base64UrlEncode(
+            Encoding.UTF8.GetBytes(token));
+
+        var baseUrl = (
+            configuration["Frontend:BaseUrl"]
+            ?? "http://localhost:5173"
+        ).TrimEnd('/');
+
+        var link =
+            $"{baseUrl}/reset-password" +
+            $"?email={Uri.EscapeDataString(user.Email!)}" +
+            $"&token={encoded}";
 
         var body = $"""
             <p>Hej {WebUtility.HtmlEncode(user.FirstName)},</p>
-            <p>Klicka på länken för att välja ett nytt lösenord. Den gäller i en timme.</p>
-            <p><a href="{WebUtility.HtmlEncode(link)}">Återställ lösenord</a></p>
-            <p>Om du inte har begärt det kan du ignorera det här mejlet.</p>
+
+            <p>
+                Klicka på länken för att välja ett nytt
+                lösenord. Den gäller i en timme.
+            </p>
+
+            <p>
+                <a href="{WebUtility.HtmlEncode(link)}">
+                    Återställ lösenord
+                </a>
+            </p>
+
+            <p>
+                Om du inte har begärt det kan du ignorera
+                det här mejlet.
+            </p>
             """;
 
         try
         {
-            await emailService.SendAsync(user.Email!, "Återställ ditt lösenord", body);
+            await emailService.SendAsync(
+                user.Email!,
+                "Återställ ditt lösenord",
+                body);
         }
         catch (Exception ex)
         {
-            // Felet får inte synas för anroparen, då avslöjas att kontot finns
-            logger.LogError(ex, "Kunde inte skicka återställningsmail.");
+            logger.LogError(
+                ex,
+                "Kunde inte skicka återställningsmail.");
         }
     }
 
-    public async Task<ResetPasswordResult> ResetPasswordAsync(ResetPasswordDto dto)
+    // =========================
+    // ÅTERSTÄLL LÖSENORD
+    // =========================
+    public async Task<ResetPasswordResult> ResetPasswordAsync(
+        ResetPasswordDto dto)
     {
-        // Lösenordet valideras först, lika för alla, så att svaret inte avslöjar om kontot finns
-        var passwordErrors = await ValidatePasswordAsync(dto.NewPassword);
+        var passwordErrors =
+            await ValidatePasswordAsync(dto.NewPassword);
+
         if (passwordErrors.Count > 0)
-            return new(ResetPasswordStatus.InvalidPassword, passwordErrors);
+        {
+            return new(
+                ResetPasswordStatus.InvalidPassword,
+                passwordErrors);
+        }
 
         var invalid = new ResetPasswordResult(
             ResetPasswordStatus.InvalidToken,
             ["Ogiltig eller utgången återställningslänk."]);
 
-        var user = await userManager.FindByEmailAsync(dto.Email.Trim());
-        if (user is null) return invalid;
+        var user = await userManager.FindByEmailAsync(
+            dto.Email.Trim());
+
+        if (user is null)
+            return invalid;
 
         string token;
+
         try
         {
-            token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(dto.Token));
+            token = Encoding.UTF8.GetString(
+                WebEncoders.Base64UrlDecode(dto.Token));
         }
         catch (FormatException)
         {
             return invalid;
         }
 
-        // Token blir ogiltig efteråt eftersom SecurityStamp uppdateras
-        var result = await userManager.ResetPasswordAsync(user, token, dto.NewPassword);
+        var result = await userManager.ResetPasswordAsync(
+            user,
+            token,
+            dto.NewPassword);
 
         return result.Succeeded
             ? new(ResetPasswordStatus.Success, [])
             : invalid;
     }
 
-    private async Task<List<string>> ValidatePasswordAsync(string password)
+    // =========================
+    // VALIDERING AV LÖSENORD
+    // =========================
+    private async Task<List<string>> ValidatePasswordAsync(
+        string password)
     {
         var errors = new List<string>();
 
         foreach (var validator in userManager.PasswordValidators)
         {
-            var r = await validator.ValidateAsync(userManager, new ApplicationUser(), password);
-            if (!r.Succeeded)
-                errors.AddRange(r.Errors.Select(e => e.Description));
+            var result = await validator.ValidateAsync(
+                userManager,
+                new ApplicationUser(),
+                password);
+
+            if (!result.Succeeded)
+            {
+                errors.AddRange(
+                    result.Errors.Select(e => e.Description));
+            }
         }
 
         return errors;
