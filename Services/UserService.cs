@@ -50,12 +50,12 @@ public class UserService(
                 challenge.UserOwnerId == userId)
             .ExecuteDeleteAsync();
 
-        await dbContext.Categories
-            .Where(category => category.OwnerUserId == userId)
-            .ExecuteDeleteAsync();
-
         await dbContext.Goals
             .Where(goal => goal.OwnerUserId == userId)
+            .ExecuteDeleteAsync();
+
+        await dbContext.Categories
+            .Where(category => category.OwnerUserId == userId)
             .ExecuteDeleteAsync();
 
         await dbContext.Calendars
