@@ -153,7 +153,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
     {
-        policy.WithOrigins("http://localhost:51730", "https://progressafrontend-cmbfgcaqb2bwbngy.swedencentral-01.azurewebsites.net")
+        policy.WithOrigins("http://localhost:5173", "https://progressafrontend-cmbfgcaqb2bwbngy.swedencentral-01.azurewebsites.net")
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
