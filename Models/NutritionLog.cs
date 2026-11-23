@@ -8,18 +8,19 @@ namespace progressa.Models
         public string UserId { get; set; } = string.Empty;
         public ApplicationUser User { get; set; } = null!;
 
-        public DateTime Date { get; set; }
+        public DateOnly Date { get; set; }
 
-        [Range(0, 10000, ErrorMessage = "Calories must be between 0 and 10,000.")]
-        public int ReachedCalories { get; set; }
+        public decimal? ReachedCalories { get; set; }
+        public decimal? ReachedProtein { get; set; }
+        public decimal? ReachedCarbs { get; set; }
+        public decimal? ReachedFat { get; set; }
 
-        [Range(0, 1000, ErrorMessage = "Protein must be between 0 and 1000.")]
-        public double ReachedProtein { get; set; }
+        public bool? CaloriesGoalReached { get; set; }
+        public bool? ProteinGoalReached { get; set; }
+        public bool? CarbsGoalReached { get; set; }
+        public bool? FatGoalReached { get; set; }
 
-        [Range(0, 1000, ErrorMessage = "Carbs must be between 0 and 1000.")]
-        public double ReachedCarbs { get; set; }
-
-        [Range(0, 1000, ErrorMessage = "Fat must be between 0 and 1000.")]
-        public double ReachedFat { get; set; }
+        [ConcurrencyCheck]
+        public Guid Version { get; set; }
     }
 }

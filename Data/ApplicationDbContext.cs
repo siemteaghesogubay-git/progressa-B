@@ -171,6 +171,8 @@ public class ApplicationDbContext(
         // Sömnloggar
         builder.Entity<SleepLog>(entity =>
         {
+            entity.HasIndex(log => new { log.UserId, log.Date }).IsUnique();
+
             entity.HasOne(log => log.User)
                 .WithMany(user => user.SleepLogs)
                 .HasForeignKey(log => log.UserId)
@@ -180,6 +182,12 @@ public class ApplicationDbContext(
         // Kostloggar
         builder.Entity<NutritionLog>(entity =>
         {
+            entity.HasIndex(log => new { log.UserId, log.Date }).IsUnique();
+            entity.Property(log => log.ReachedCalories).HasPrecision(7, 2);
+            entity.Property(log => log.ReachedProtein).HasPrecision(7, 2);
+            entity.Property(log => log.ReachedCarbs).HasPrecision(7, 2);
+            entity.Property(log => log.ReachedFat).HasPrecision(7, 2);
+
             entity.HasOne(log => log.User)
                 .WithMany(user => user.NutritionLogs)
                 .HasForeignKey(log => log.UserId)

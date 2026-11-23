@@ -8,11 +8,12 @@ namespace progressa.Models
         public string UserId { get; set; } = string.Empty;
         public ApplicationUser User { get; set; } = null!;
 
-        public DateTime Date { get; set; }
+        public DateOnly Date { get; set; }
 
         [Range(0, 24, ErrorMessage = "Sleep hours must be between 0 and 24.")]
-        public double SleepHours { get; set; }
-        public DateTime BedTime { get; set; }
-        public DateTime WakeTime { get; set; }
+        public double? SleepHours { get; set; }
+        public DateTime? BedTime { get; set; }
+        public DateTime? WakeTime { get; set; }
+        public bool? GoalReached { get; set; }
     }
 }
