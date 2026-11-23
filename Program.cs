@@ -23,6 +23,7 @@ builder.Services.AddScoped<IGoalRepository, GoalRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ICalendarRepository, CalendarRepository>();
 builder.Services.AddScoped<IDailyLogRepository, DailyLogRepository>();
+builder.Services.AddScoped<IUserSettingsRepository, UserSettingsRepository>();
 
 builder.Services.AddScoped<
     IActivitySessionRepository,
@@ -40,6 +41,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IGoalService, GoalService>();
 builder.Services.AddScoped<ICalendarService, CalendarService>();
 builder.Services.AddScoped<IDailyLogService, DailyLogService>();
+builder.Services.AddScoped<IUserSettingsService, UserSettingsService>();
 
 builder.Services.AddScoped<
     IActivitySessionService,
@@ -153,7 +155,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins("http://localhost:5173", "https://progressafrontend-cmbfgcaqb2bwbngy.swedencentral-01.azurewebsites.net")
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -207,11 +209,8 @@ using (var scope = app.Services.CreateScope())
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseMiddleware<RequestLoggingMiddleware>();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-    app.MapScalarApiReference();
-}
+app.MapOpenApi();
+app.MapScalarApiReference();
 
 app.UseHttpsRedirection();
 
@@ -224,5 +223,10 @@ app.UseAuthorization();
 app.UseRateLimiter();
 
 app.MapControllers();
+app.MapGet("/", () => Results.Ok(new
+{
+    Application = "Progressa API",
+    Status = "Running"
+})).AllowAnonymous();
 
 app.Run();

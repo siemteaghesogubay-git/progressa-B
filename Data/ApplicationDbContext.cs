@@ -203,6 +203,31 @@ public class ApplicationDbContext(
                 .WithOne(user => user.UserSettings)
                 .HasForeignKey<UserSettings>(settings => settings.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // The database defaults give rows created before these columns existed valid values.
+            entity.Property(settings => settings.DistanceUnit)
+                .HasMaxLength(10)
+                .HasDefaultValue("km");
+
+            entity.Property(settings => settings.WeightUnit)
+                .HasMaxLength(10)
+                .HasDefaultValue("kg");
+
+            entity.Property(settings => settings.EnergyUnit)
+                .HasMaxLength(10)
+                .HasDefaultValue("kcal");
+
+            entity.Property(settings => settings.HeightUnit)
+                .HasMaxLength(10)
+                .HasDefaultValue("cm");
+
+            entity.Property(settings => settings.TimeFormat)
+                .HasMaxLength(10)
+                .HasDefaultValue("24h");
+
+            entity.Property(settings => settings.WeekStart)
+                .HasMaxLength(10)
+                .HasDefaultValue("mon");
         });
 
         // Konfigurationer

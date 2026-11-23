@@ -46,7 +46,7 @@ namespace progressa.Controllers
                     {
                         ModelState.AddModelError(nameof(dto.Password), error);
                     }
-                    return ValidationProblem(ModelState);
+                    return ValidationProblem(statusCode: StatusCodes.Status400BadRequest, modelStateDictionary: ModelState);
 
                 default:
                     return Problem(statusCode: StatusCodes.Status500InternalServerError, title: "Account couldn't be deleted");

@@ -43,7 +43,17 @@ public record ResetPasswordResult(
 public interface IAuthService
 {
     Task<RegisterResult> RegisterAsync(RegisterDto dto);
+
     Task<LoginResponseDto?> LoginAsync(LoginDto dto);
+
+    // NYTT: E-postverifiering
+    Task<bool> VerifyEmailAsync(string email, string token);
+
+    // NYTT: Skicka ny verifieringslänk
+    Task ResendVerificationEmailAsync(string email);
+
+    // Återställning av lösenord
     Task ForgotPasswordAsync(string email);
+
     Task<ResetPasswordResult> ResetPasswordAsync(ResetPasswordDto dto);
 }
