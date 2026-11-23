@@ -471,28 +471,49 @@ namespace progressa.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("datetime2");
+                    b.Property<bool?>("CaloriesGoalReached")
+                        .HasColumnType("bit");
 
-                    b.Property<int>("ReachedCalories")
-                        .HasColumnType("int");
+                    b.Property<bool?>("CarbsGoalReached")
+                        .HasColumnType("bit");
 
-                    b.Property<double>("ReachedCarbs")
-                        .HasColumnType("float");
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
 
-                    b.Property<double>("ReachedFat")
-                        .HasColumnType("float");
+                    b.Property<bool?>("FatGoalReached")
+                        .HasColumnType("bit");
 
-                    b.Property<double>("ReachedProtein")
-                        .HasColumnType("float");
+                    b.Property<bool?>("ProteinGoalReached")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal?>("ReachedCalories")
+                        .HasPrecision(7, 2)
+                        .HasColumnType("decimal(7,2)");
+
+                    b.Property<decimal?>("ReachedCarbs")
+                        .HasPrecision(7, 2)
+                        .HasColumnType("decimal(7,2)");
+
+                    b.Property<decimal?>("ReachedFat")
+                        .HasPrecision(7, 2)
+                        .HasColumnType("decimal(7,2)");
+
+                    b.Property<decimal?>("ReachedProtein")
+                        .HasPrecision(7, 2)
+                        .HasColumnType("decimal(7,2)");
 
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<Guid>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId", "Date")
+                        .IsUnique();
 
                     b.ToTable("NutritionLogs");
                 });
@@ -554,25 +575,29 @@ namespace progressa.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("BedTime")
+                    b.Property<DateTime?>("BedTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("datetime2");
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
 
-                    b.Property<double>("SleepHours")
+                    b.Property<bool?>("GoalReached")
+                        .HasColumnType("bit");
+
+                    b.Property<double?>("SleepHours")
                         .HasColumnType("float");
 
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<DateTime>("WakeTime")
+                    b.Property<DateTime?>("WakeTime")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId", "Date")
+                        .IsUnique();
 
                     b.ToTable("SleepLogs");
                 });
